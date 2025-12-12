@@ -10,6 +10,54 @@ const templates = {
         display: none;
     }
 
+    /* Category headings */
+    .navigatorCategory,
+    .navigatorCategory2,
+    .navigatorCategory3,
+    .navigatorCategory4,
+    .navigatorCategory5 {
+        margin: 0 0 6px 0;
+    }
+
+    /* Top-level category title: mono + uppercase */
+    .navigatorCategoryTitle {
+        font-family: "SFMono-Regular", "Courier New", monospace;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.85rem;
+        color: #555;
+        margin: 12px 0 4px 0;
+    }
+
+
+    /* Items */
+    .navigatorItem,
+    .navigatorItem2,
+    .navigatorItem3,
+    .navigatorItem4,
+    .navigatorItem5,
+    .navigatorCategoryTitle2,
+    .navigatorCategoryTitle3,
+    .navigatorCategoryTitle4,
+    .navigatorCategoryTitle5 {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        margin: 2px 0;
+        cursor: pointer;
+    }
+
+    /* Indentation per depth (items only) */
+    .navigatorItem, .navigatorCategoryTitle2 { margin-left: 12px; }
+    .navigatorItem2, .navigatorCategoryTitle3 { margin-left: 24px; }
+    .navigatorItem3, .navigatorCategoryTitle4 { margin-left: 36px; }
+    .navigatorItem4, .navigatorCategoryTitle5 { margin-left: 48px; }
+    .navigatorItem5 { margin-left: 60px; }
+
+    /* Minor caret alignment */
+    .fa-fw { width: 14px; text-align: center; }
+
     </style>
     <div id="navigator-container">
         <h1>Navigator Test Desktop</h1>
