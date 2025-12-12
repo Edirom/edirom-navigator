@@ -53,6 +53,19 @@ const templates = {
     .navigatorItem4, .navigatorCategoryTitle5 { margin-left: 48px; }
     .navigatorItem5 { margin-left: 60px; }
 
+    .navigatorCategoryTitle2 span,
+    .navigatorCategoryTitle3 span,
+    .navigatorCategoryTitle4 span,
+    .navigatorCategoryTitle5 span {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .caret-icon {
+        position: relative;
+        top: -1px;
+    }
+
     </style>
     <div id="navigator-container">
     </div>
@@ -151,6 +164,7 @@ class navigatorElement extends HTMLElement {
             titleSpan.textContent = category.name;
 
             const caretIcon = document.createElement('edirom-icon');
+            caretIcon.className = 'caret-icon';
             caretIcon.name = 'arrow_right';
             titleSpan.appendChild(caretIcon);
 
