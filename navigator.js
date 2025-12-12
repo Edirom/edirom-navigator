@@ -19,18 +19,17 @@ const templates = {
         margin: 0 0 6px 0;
     }
 
-    /* Top-level category title: mono + uppercase */
+
     .navigatorCategoryTitle {
         font-family: inherit;
         font-size: 13px;
         font-weight: 500;
-        text-transform: uppercase;
+        font-variant: small-caps;
         color: #555;
         margin: 12px 0 4px 0;
     }
 
 
-    /* Items */
     .navigatorItem,
     .navigatorItem2,
     .navigatorItem3,
@@ -47,7 +46,7 @@ const templates = {
         cursor: pointer;
     }
 
-    /* Indentation per depth (items only) */
+    /* Indentation per depth */
     .navigatorItem, .navigatorCategoryTitle2 { margin-left: 12px; }
     .navigatorItem2, .navigatorCategoryTitle3 { margin-left: 24px; }
     .navigatorItem3, .navigatorCategoryTitle4 { margin-left: 36px; }
