@@ -5,7 +5,11 @@ const templates = {
     desktop: `
 <div>
     <style>
-        
+
+    .hidden {
+        display: none;
+    }
+
     </style>
     <div id="navigator-container">
         <h1>Navigator Test Desktop</h1>
@@ -75,6 +79,106 @@ class navigatorElement extends HTMLElement {
 
     renderNavigator = () => {
         console.log("Rendering navigator with data");
+        const container = this.shadow.getElementById("navigator-container");
+
+        container.innerHTML = '';
+
+        const navigatorDefinition = this.navigatorData.navigatorDefinition || [];
+
+        navigatorDefinition.forEach(category => {
+            const categoryElement = this.renderCategory(category, 1);
+            container.appendChild(categoryElement);
+        });
+        console.log(container.innerHTML);
+    }
+
+    renderCategory = (category, depth = 1) => {
+        const categoryDiv = document.createElement('div');
+        const depthSuffix = depth > 1 ? depth : '';
+        categoryDiv.className = `navigatorCategory${depthSuffix}`;
+        categoryDiv.id = category.id;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = `navigatorCategoryTitle${depthSuffix}`;
+
+        if (depth > 1) {
+            // Nested categories have collapsible behavior
+            const titleSpan = document.createElement('span');
+            titleSpan.id = `${category.id}-title`;
+            titleSpan.className = 'folded';
+            titleSpan.textContent = category.name;
+
+            const caretIcon = document.createElement('i');
+            caretIcon.className = 'fa fa-caret-right fa-fw';
+            titleSpan.appendChild(caretIcon);
+
+            titleSpan.addEventListener('click', () => {
+                const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
+                if (titleSpan.classList.contains('folded')) {
+                    titleSpan.classList.remove('folded');
+                    caretIcon.classList.remove('fa-caret-right');
+                    caretIcon.classList.add('fa-caret-down');
+                    itemsDiv.classList.remove('hidden');
+                } else {
+                    titleSpan.classList.add('folded');
+                    caretIcon.classList.remove('fa-caret-down');
+                    caretIcon.classList.add('fa-caret-right');
+                    itemsDiv.classList.add('hidden');
+                }
+            });
+
+            titleDiv.appendChild(titleSpan);
+        } else {
+            titleDiv.textContent = category.name;
+        }
+
+        categoryDiv.appendChild(titleDiv);
+
+        // Create items container
+        const itemsDiv = document.createElement('div');
+        itemsDiv.id = `${category.id}-items`;
+        itemsDiv.className = depth > 1 ? 'hidden' : '';
+
+        if (category.items) {
+            category.items.forEach(item => {
+                if (item.type === 'navigatorCategory') {
+                    // Nested category - increase depth
+                    const nestedCategory = this.renderCategory(item, depth + 1);
+                    itemsDiv.appendChild(nestedCategory);
+                } else if (item.type === 'navigatorItem') {
+                    // Regular item
+                    const itemDiv = this.renderItem(item, depth);
+                    itemsDiv.appendChild(itemDiv);
+                }
+            });
+        }
+
+        categoryDiv.appendChild(itemsDiv);
+        return categoryDiv;
+    }
+
+    renderItem = (item, depth = 1) => {
+        const itemDiv = document.createElement('div');
+        const depthSuffix = depth > 1 ? depth : '';
+        itemDiv.className = `navigatorItem${depthSuffix}`;
+        itemDiv.id = item.id;
+        itemDiv.textContent = item.name;
+
+        itemDiv.addEventListener('click', () => {
+            this.loadLink(item.target, {});
+        });
+
+        return itemDiv;
+    }
+
+    loadLink = (target, options) => {
+        console.log('Loading link:', target, options);
+        // Dispatch a custom event that parent components can listen to
+        this.dispatchEvent(new CustomEvent('navigator-link-click', {
+            bubbles: true,
+            composed: true,
+            detail: { target, options }
+        }));
     }
 
 
