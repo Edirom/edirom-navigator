@@ -21,11 +21,10 @@ const templates = {
 
     /* Top-level category title: mono + uppercase */
     .navigatorCategoryTitle {
-        font-family: "SFMono-Regular", "Courier New", monospace;
-        font-weight: 700;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        font-size: 0.85rem;
         color: #555;
         margin: 12px 0 4px 0;
     }
@@ -41,8 +40,8 @@ const templates = {
     .navigatorCategoryTitle3,
     .navigatorCategoryTitle4,
     .navigatorCategoryTitle5 {
-        font-family: "Helvetica Neue", Arial, sans-serif;
-        font-size: 14px;
+        font-family: inherit;
+        font-size: 13px;
         font-weight: 400;
         margin: 2px 0;
         cursor: pointer;
@@ -60,7 +59,6 @@ const templates = {
 
     </style>
     <div id="navigator-container">
-        <h1>Navigator Test Desktop</h1>
     </div>
 </div>
 `,
