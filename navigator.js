@@ -155,7 +155,7 @@ class navigatorElement extends HTMLElement {
             caretIcon.name = 'arrow_right';
             titleSpan.appendChild(caretIcon);
 
-            titleSpan.addEventListener('click', () => {
+            titleDiv.addEventListener('click', () => {
                 const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
                 if (titleSpan.classList.contains('folded')) {
                     titleSpan.classList.remove('folded');
