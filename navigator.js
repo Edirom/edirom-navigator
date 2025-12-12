@@ -54,9 +54,6 @@ const templates = {
     .navigatorItem4, .navigatorCategoryTitle5 { margin-left: 48px; }
     .navigatorItem5 { margin-left: 60px; }
 
-    /* Minor caret alignment */
-    .fa-fw { width: 14px; text-align: center; }
-
     </style>
     <div id="navigator-container">
     </div>
@@ -154,21 +151,19 @@ class navigatorElement extends HTMLElement {
             titleSpan.className = 'folded';
             titleSpan.textContent = category.name;
 
-            const caretIcon = document.createElement('i');
-            caretIcon.className = 'fa fa-caret-right fa-fw';
+            const caretIcon = document.createElement('edirom-icon');
+            caretIcon.name = 'arrow_right';
             titleSpan.appendChild(caretIcon);
 
             titleSpan.addEventListener('click', () => {
                 const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
                 if (titleSpan.classList.contains('folded')) {
                     titleSpan.classList.remove('folded');
-                    caretIcon.classList.remove('fa-caret-right');
-                    caretIcon.classList.add('fa-caret-down');
+                    caretIcon.name = 'arrow_drop_down';
                     itemsDiv.classList.remove('hidden');
                 } else {
                     titleSpan.classList.add('folded');
-                    caretIcon.classList.remove('fa-caret-down');
-                    caretIcon.classList.add('fa-caret-right');
+                    caretIcon.name = 'arrow_right';
                     itemsDiv.classList.add('hidden');
                 }
             });
