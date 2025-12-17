@@ -143,14 +143,14 @@ const templates = {
     .navigatorItem3,
     .navigatorItem4,
     .navigatorItem5 {
-        color: var(--secondary-color);
+        color: var(--primary-color);
         width: min(70vw, 400px);
         height: auto;
         min-height: 40px;
         font-size: 1rem;
         margin: 10px auto;
         padding: 5px;
-        background-color: var(--primary-color);
+        background-color: var(--secondary-color);
         display: flex;
         justify-content: center;
         align-items: center;
