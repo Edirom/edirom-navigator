@@ -130,7 +130,17 @@ const templates = {
     .navigatorItem2,
     .navigatorItem3,
     .navigatorItem4,
-    .navigatorItem5,
+    .navigatorItem5 {
+        width: 70%;
+        height: 60px;
+        font-size: 1rem;
+        margin: 10px auto;
+        background-color: #828dd5ff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
     .navigatorCategoryTitle2,
     .navigatorCategoryTitle3,
     .navigatorCategoryTitle4,
