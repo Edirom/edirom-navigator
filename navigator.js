@@ -113,8 +113,16 @@ const templates = {
     .navigatorCategoryTitle::after {
         content: '';
         flex: 1;
-        border-bottom: 1px solid #555;
+        height: 1px;
         margin: 0 10px;
+    }
+
+    .navigatorCategoryTitle::before {
+        background: linear-gradient(to right, transparent, #555);
+    }
+
+    .navigatorCategoryTitle::after {
+        background: linear-gradient(to right, #555, transparent);
     }
 
 
