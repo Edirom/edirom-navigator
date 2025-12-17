@@ -83,6 +83,7 @@ const templates = {
         display: flex;
         flex-direction: column;
         /* align-items: center; removed to allow full width for lines */
+        overflow-x: hidden;
     }
 
     /* Category headings */
@@ -131,14 +132,17 @@ const templates = {
     .navigatorItem3,
     .navigatorItem4,
     .navigatorItem5 {
-        width: 70%;
-        height: 60px;
+        width: min(70vw, 400px);
+        height: auto;
+        min-height: 40px;
         font-size: 1rem;
         margin: 10px auto;
+        padding: 5px;
         background-color: #828dd5ff;
         display: flex;
         justify-content: center;
         align-items: center;
+        box-sizing: border-box;
     }
 
     .navigatorCategoryTitle2,
