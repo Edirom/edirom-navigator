@@ -84,6 +84,12 @@ const templates = {
         flex-direction: column;
         /* align-items: center; removed to allow full width for lines */
         overflow-x: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    #navigator-container * {
+        -webkit-tap-highlight-color: transparent;
     }
 
     /* Category headings */
