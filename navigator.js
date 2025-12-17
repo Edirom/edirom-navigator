@@ -74,10 +74,81 @@ const templates = {
 
     mobile: `<div>
     <style>
-        
+
+    .hidden {
+        display: none;
+    }
+
+    #navigator-container {
+        display: flex;
+        flex-direction: column;
+        /* align-items: center; removed to allow full width for lines */
+    }
+
+    /* Category headings */
+    .navigatorCategory,
+    .navigatorCategory2,
+    .navigatorCategory3,
+    .navigatorCategory4,
+    .navigatorCategory5 {
+        margin: 0 0 6px 0;
+        text-align: center;
+    }
+
+
+    .navigatorCategoryTitle {
+        font-family: inherit;
+        font-size: 1.3rem;
+        font-weight: 500;
+        font-variant: small-caps;
+        color: #555;
+        margin: 12px 0 14px 0;
+        line-height: 0.5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .navigatorCategoryTitle::before,
+    .navigatorCategoryTitle::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #555;
+        margin: 0 10px;
+    }
+
+
+    .navigatorItem,
+    .navigatorItem2,
+    .navigatorItem3,
+    .navigatorItem4,
+    .navigatorItem5,
+    .navigatorCategoryTitle2,
+    .navigatorCategoryTitle3,
+    .navigatorCategoryTitle4,
+    .navigatorCategoryTitle5 {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 400;
+        margin: 2px 0;
+        cursor: pointer;
+    }
+
+    .navigatorCategoryTitle2 span,
+    .navigatorCategoryTitle3 span,
+    .navigatorCategoryTitle4 span,
+    .navigatorCategoryTitle5 span {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .caret-icon {
+        position: relative;
+        top: -1px;
+    }
+
     </style>
     <div id="navigator-container">
-        <h1>Navigator Test Mobile</h1>
     </div>
 </div>
 `
@@ -141,13 +212,19 @@ class navigatorElement extends HTMLElement {
         const navigatorDefinition = this.navigatorData.navigatorDefinition || [];
 
         navigatorDefinition.forEach(category => {
-            const categoryElement = this.renderCategory(category, 1);
+            let categoryElement;
+            if (this.mode === 'desktop') {
+                categoryElement = this.renderCategoryDesktop(category, 1);
+            }
+            else if (this.mode === 'mobile') {
+                categoryElement = this.renderCategoryMobile(category, 1);
+            }
             container.appendChild(categoryElement);
         });
         console.log(container.innerHTML);
     }
 
-    renderCategory = (category, depth = 1) => {
+    renderCategoryDesktop = (category, depth = 1) => {
         const categoryDiv = document.createElement('div');
         const depthSuffix = depth > 1 ? depth : '';
         categoryDiv.className = `navigatorCategory${depthSuffix}`;
@@ -183,7 +260,10 @@ class navigatorElement extends HTMLElement {
 
             titleDiv.appendChild(titleSpan);
         } else {
-            titleDiv.textContent = category.name;
+            const titleSpan = document.createElement('span');
+            titleSpan.id = `${category.id}-title`;
+            titleSpan.textContent = category.name;
+            titleDiv.appendChild(titleSpan);
         }
 
         categoryDiv.appendChild(titleDiv);
@@ -197,7 +277,7 @@ class navigatorElement extends HTMLElement {
             category.items.forEach(item => {
                 if (item.type === 'navigatorCategory') {
                     // Nested category - increase depth
-                    const nestedCategory = this.renderCategory(item, depth + 1);
+                    const nestedCategory = this.renderCategoryDesktop(item, depth + 1);
                     itemsDiv.appendChild(nestedCategory);
                 } else if (item.type === 'navigatorItem') {
                     // Regular item
@@ -223,6 +303,73 @@ class navigatorElement extends HTMLElement {
         });
 
         return itemDiv;
+    }
+
+    renderCategoryMobile = (category, depth = 1) => {
+        const categoryDiv = document.createElement('div');
+        const depthSuffix = depth > 1 ? depth : '';
+        categoryDiv.className = `navigatorCategory${depthSuffix}`;
+        categoryDiv.id = category.id;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = `navigatorCategoryTitle${depthSuffix}`;
+
+        if (depth > 1) {
+            // Nested categories have collapsible behavior
+            const titleSpan = document.createElement('span');
+            titleSpan.id = `${category.id}-title`;
+            titleSpan.className = 'folded';
+            titleSpan.textContent = category.name;
+
+            const caretIcon = document.createElement('edirom-icon');
+            caretIcon.className = 'caret-icon';
+            caretIcon.name = 'arrow_right';
+            titleSpan.appendChild(caretIcon);
+
+            titleDiv.addEventListener('click', () => {
+                const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
+                if (titleSpan.classList.contains('folded')) {
+                    titleSpan.classList.remove('folded');
+                    caretIcon.name = 'arrow_drop_down';
+                    itemsDiv.classList.remove('hidden');
+                } else {
+                    titleSpan.classList.add('folded');
+                    caretIcon.name = 'arrow_right';
+                    itemsDiv.classList.add('hidden');
+                }
+            });
+
+            titleDiv.appendChild(titleSpan);
+        } else {
+            const titleSpan = document.createElement('span');
+            titleSpan.id = `${category.id}-title`;
+            titleSpan.textContent = category.name;
+            titleDiv.appendChild(titleSpan);
+        }
+
+        categoryDiv.appendChild(titleDiv);
+
+        // Create items container
+        const itemsDiv = document.createElement('div');
+        itemsDiv.id = `${category.id}-items`;
+        itemsDiv.className = depth > 1 ? 'hidden' : '';
+
+        if (category.items) {
+            category.items.forEach(item => {
+                if (item.type === 'navigatorCategory') {
+                    // Nested category - increase depth
+                    const nestedCategory = this.renderCategoryMobile(item, depth + 1);
+                    itemsDiv.appendChild(nestedCategory);
+                } else if (item.type === 'navigatorItem') {
+                    // Regular item
+                    const itemDiv = this.renderItem(item, depth);
+                    itemsDiv.appendChild(itemDiv);
+                }
+            });
+        }
+
+        categoryDiv.appendChild(itemsDiv);
+        return categoryDiv;
     }
 
     loadLink = (target, options) => {
