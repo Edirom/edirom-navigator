@@ -75,6 +75,11 @@ const templates = {
     mobile: `<div>
     <style>
 
+    :host {
+        --primary-color: #a3a3a3ff;
+        --secondary-color: #565656ff;
+    }
+
     .hidden {
         display: none;
     }
@@ -138,13 +143,14 @@ const templates = {
     .navigatorItem3,
     .navigatorItem4,
     .navigatorItem5 {
+        color: var(--secondary-color);
         width: min(70vw, 400px);
         height: auto;
         min-height: 40px;
         font-size: 1rem;
         margin: 10px auto;
         padding: 5px;
-        background-color: #828dd5ff;
+        background-color: var(--primary-color);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -156,9 +162,14 @@ const templates = {
     .navigatorCategoryTitle4,
     .navigatorCategoryTitle5 {
         font-family: inherit;
-        font-size: 13px;
+        font-size: 1.15rem;
         font-weight: 400;
-        margin: 2px 0;
+        color: #555;
+        margin: 12px 0 14px 0;
+        line-height: 0.5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
     }
 
