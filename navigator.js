@@ -420,7 +420,7 @@ class navigatorElement extends HTMLElement {
     loadLink = (target, options) => {
         console.log('Loading link:', target, options);
         // Dispatch a custom event that parent components can listen to
-        this.dispatchEvent(new CustomEvent('navigator-link-click', {
+        this.dispatchEvent(new CustomEvent('load-link-request', {
             bubbles: true,
             composed: true,
             detail: { target, options }
