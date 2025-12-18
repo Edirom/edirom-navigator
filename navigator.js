@@ -78,6 +78,12 @@ const templates = {
     :host {
         --primary-color: #a3a3a3ff;
         --secondary-color: #565656ff;
+        height: 100%;
+        width: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        overflow-y: auto;
+        overflow-x: auto;
     }
 
     .hidden {
