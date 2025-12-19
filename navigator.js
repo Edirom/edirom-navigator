@@ -161,6 +161,7 @@ const templates = {
         justify-content: center;
         align-items: center;
         box-sizing: border-box;
+        cursor: pointer;
     }
 
     .navigatorCategoryTitle2,
