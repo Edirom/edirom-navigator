@@ -204,12 +204,8 @@ const templates = {
 class navigatorElement extends HTMLElement {
     constructor() {
         super();
-        let me = this;
-        this.mode = this.getAttribute('layout-mode') === 'mobile' ? 'mobile' : 'desktop';
-        const template = document.createElement("template");
-        template.innerHTML = templates[this.mode];
+        this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
-        this.shadow.append(template.content.cloneNode(true))
         this.navigatorData = {};
 
         // Elements
@@ -221,7 +217,7 @@ class navigatorElement extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ["navigator-data"];
+        return ["navigator-data", "layout-mode"];
     }
 
     // get navigatorData() {
@@ -233,6 +229,9 @@ class navigatorElement extends HTMLElement {
 
     connectedCallback() {
         console.log("Navigator connected!");
+        this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
+        this.applyTemplate();
+        this.renderNavigator();
     }
 
     disconnectedCallback() {
@@ -245,32 +244,41 @@ class navigatorElement extends HTMLElement {
         if (name === "navigator-data") {
             this.navigatorData = JSON.parse(newValue);
             this.renderNavigator();
+        } else if (name === "layout-mode") {
+            this.mode = this.getLayoutMode(newValue);
+            this.applyTemplate();
+            this.renderNavigator();
         }
 
+    }
+
+    getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
+
+    applyTemplate = () => {
+        const template = document.createElement("template");
+        template.innerHTML = templates[this.mode];
+        this.shadow.innerHTML = '';
+        this.shadow.append(template.content.cloneNode(true));
     }
 
     renderNavigator = () => {
         console.log("Rendering navigator with data");
         const container = this.shadow.getElementById("navigator-container");
 
+        if (!container) return;
+
         container.innerHTML = '';
 
         const navigatorDefinition = this.navigatorData.navigatorDefinition || [];
 
         navigatorDefinition.forEach(category => {
-            let categoryElement;
-            if (this.mode === 'desktop') {
-                categoryElement = this.renderCategoryDesktop(category, 1);
-            }
-            else if (this.mode === 'mobile') {
-                categoryElement = this.renderCategoryMobile(category, 1);
-            }
+            let categoryElement = this.renderCategory(category, 1);
             container.appendChild(categoryElement);
         });
         console.log(container.innerHTML);
     }
 
-    renderCategoryDesktop = (category, depth = 1) => {
+    renderCategory = (category, depth = 1) => {
         const categoryDiv = document.createElement('div');
         const depthSuffix = depth > 1 ? depth : '';
         categoryDiv.className = `navigatorCategory${depthSuffix}`;
@@ -323,7 +331,7 @@ class navigatorElement extends HTMLElement {
             category.items.forEach(item => {
                 if (item.type === 'navigatorCategory') {
                     // Nested category - increase depth
-                    const nestedCategory = this.renderCategoryDesktop(item, depth + 1);
+                    const nestedCategory = this.renderCategory(item, depth + 1);
                     itemsDiv.appendChild(nestedCategory);
                 } else if (item.type === 'navigatorItem') {
                     // Regular item
@@ -349,73 +357,6 @@ class navigatorElement extends HTMLElement {
         });
 
         return itemDiv;
-    }
-
-    renderCategoryMobile = (category, depth = 1) => {
-        const categoryDiv = document.createElement('div');
-        const depthSuffix = depth > 1 ? depth : '';
-        categoryDiv.className = `navigatorCategory${depthSuffix}`;
-        categoryDiv.id = category.id;
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = `navigatorCategoryTitle${depthSuffix}`;
-
-        if (depth > 1) {
-            // Nested categories have collapsible behavior
-            const titleSpan = document.createElement('span');
-            titleSpan.id = `${category.id}-title`;
-            titleSpan.className = 'folded';
-            titleSpan.textContent = category.name;
-
-            const caretIcon = document.createElement('edirom-icon');
-            caretIcon.className = 'caret-icon';
-            caretIcon.name = 'arrow_right';
-            titleSpan.appendChild(caretIcon);
-
-            titleDiv.addEventListener('click', () => {
-                const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
-                if (titleSpan.classList.contains('folded')) {
-                    titleSpan.classList.remove('folded');
-                    caretIcon.name = 'arrow_drop_down';
-                    itemsDiv.classList.remove('hidden');
-                } else {
-                    titleSpan.classList.add('folded');
-                    caretIcon.name = 'arrow_right';
-                    itemsDiv.classList.add('hidden');
-                }
-            });
-
-            titleDiv.appendChild(titleSpan);
-        } else {
-            const titleSpan = document.createElement('span');
-            titleSpan.id = `${category.id}-title`;
-            titleSpan.textContent = category.name;
-            titleDiv.appendChild(titleSpan);
-        }
-
-        categoryDiv.appendChild(titleDiv);
-
-        // Create items container
-        const itemsDiv = document.createElement('div');
-        itemsDiv.id = `${category.id}-items`;
-        itemsDiv.className = depth > 1 ? 'hidden' : '';
-
-        if (category.items) {
-            category.items.forEach(item => {
-                if (item.type === 'navigatorCategory') {
-                    // Nested category - increase depth
-                    const nestedCategory = this.renderCategoryMobile(item, depth + 1);
-                    itemsDiv.appendChild(nestedCategory);
-                } else if (item.type === 'navigatorItem') {
-                    // Regular item
-                    const itemDiv = this.renderItem(item, depth);
-                    itemsDiv.appendChild(itemDiv);
-                }
-            });
-        }
-
-        categoryDiv.appendChild(itemsDiv);
-        return categoryDiv;
     }
 
     loadLink = (target, options) => {
