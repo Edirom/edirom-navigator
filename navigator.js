@@ -262,6 +262,7 @@ class navigatorElement extends HTMLElement {
     }
 
     renderNavigator = () => {
+        if (!this.isConnected) return; // skip until attached
         console.log("Rendering navigator with data");
         const container = this.shadow.getElementById("navigator-container");
 
@@ -269,7 +270,7 @@ class navigatorElement extends HTMLElement {
 
         container.innerHTML = '';
 
-        const navigatorDefinition = this.navigatorData.navigatorDefinition || [];
+        const navigatorDefinition = this.navigatorData?.navigatorDefinition || [];
 
         navigatorDefinition.forEach(category => {
             let categoryElement = this.renderCategory(category, 1);
@@ -368,9 +369,6 @@ class navigatorElement extends HTMLElement {
             detail: { target, options }
         }));
     }
-
-
-
 
 }
 
