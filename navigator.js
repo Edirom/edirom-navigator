@@ -61,6 +61,15 @@ const templates = {
         align-items: center;
     }
 
+    /* Keep icon and label visually separated inside buttons */
+    .navigatorItem edirom-icon,
+    .navigatorItem2 edirom-icon,
+    .navigatorItem3 edirom-icon,
+    .navigatorItem4 edirom-icon,
+    .navigatorItem5 edirom-icon {
+        margin-right: 6px;
+    }
+
     .caret-icon {
         position: relative;
         top: -1px;
@@ -162,6 +171,14 @@ const templates = {
         align-items: center;
         box-sizing: border-box;
         cursor: pointer;
+    }
+
+    .navigatorItem edirom-icon,
+    .navigatorItem2 edirom-icon,
+    .navigatorItem3 edirom-icon,
+    .navigatorItem4 edirom-icon,
+    .navigatorItem5 edirom-icon {
+        margin-right: 5px;
     }
 
     .navigatorCategoryTitle2,
@@ -346,12 +363,32 @@ class navigatorElement extends HTMLElement {
         return categoryDiv;
     }
 
+    isExternalLinkTarget = (item) => {
+        const startsWithWebPrefix = (value) => typeof value === 'string' && (value.startsWith('http') || value.startsWith('www'));
+
+        if (startsWithWebPrefix(item?.target)) return true;
+
+        const { targets } = item || {};
+        if (Array.isArray(targets)) return targets.some(startsWithWebPrefix);
+        if (typeof targets === 'string') return startsWithWebPrefix(targets);
+
+        return false;
+    }
+
     renderItem = (item, depth = 1) => {
         const itemDiv = document.createElement('div');
         const depthSuffix = depth > 1 ? depth : '';
         itemDiv.className = `navigatorItem${depthSuffix}`;
         itemDiv.id = item.id;
-        itemDiv.textContent = item.name;
+
+        if (this.mode === 'mobile' && this.isExternalLinkTarget(item)) {
+            const linkIcon = document.createElement('edirom-icon');
+            linkIcon.setAttribute('name', 'open_in_new');
+            itemDiv.appendChild(linkIcon);
+            itemDiv.appendChild(document.createTextNode(item.name));
+        } else {
+            itemDiv.textContent = item.name;
+        }
 
         itemDiv.addEventListener('click', () => {
             this.loadLink(item.target, {});
