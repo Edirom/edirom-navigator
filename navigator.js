@@ -1,6 +1,3 @@
-import '../edirom-core-web-components/src/edirom-icon.js';
-
-
 const templates = {
     desktop: `
 <div>
