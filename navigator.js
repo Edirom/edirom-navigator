@@ -224,25 +224,11 @@ class navigatorElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
         this.navigatorData = {};
-
-        // Elements
-
-
-        // Event listeners
-
-
     }
 
     static get observedAttributes() {
         return ["navigator-data", "layout-mode"];
     }
-
-    // get navigatorData() {
-    //     return this.getAttribute("navigator-data");
-    // }
-    // set navigatorData(value) {
-    //     this.setAttribute("navigator-data", value);
-    // }
 
     connectedCallback() {
         console.log("Navigator connected!");
@@ -293,7 +279,6 @@ class navigatorElement extends HTMLElement {
             let categoryElement = this.renderCategory(category, 1);
             container.appendChild(categoryElement);
         });
-        console.log(container.innerHTML);
     }
 
     renderCategory = (category, depth = 1) => {
@@ -363,16 +348,25 @@ class navigatorElement extends HTMLElement {
         return categoryDiv;
     }
 
+    parseTargets = (targets) => {
+        if (!targets) return { target: '', config: {} };
+        const bracketIndex = targets.indexOf('[');
+        if (bracketIndex === -1) return { target: targets, config: {} };
+        const target = targets.slice(0, bracketIndex).trim();
+        const cfgString = targets.slice(bracketIndex + 1, targets.lastIndexOf(']'));
+        const config = Object.fromEntries(
+            cfgString.split(',')
+                .map(pair => pair.split(/[=:](.*)/).slice(0, 2))
+                .filter(([k]) => k?.trim())
+                .map(([k, v]) => [k.trim(), v?.trim() ?? ''])
+        );
+        return { target, config };
+    }
+
     isExternalLinkTarget = (item) => {
         const startsWithWebPrefix = (value) => typeof value === 'string' && (value.startsWith('http') || value.startsWith('www'));
-
-        if (startsWithWebPrefix(item?.target)) return true;
-
-        const { targets } = item || {};
-        if (Array.isArray(targets)) return targets.some(startsWithWebPrefix);
-        if (typeof targets === 'string') return startsWithWebPrefix(targets);
-
-        return false;
+        const { target } = this.parseTargets(item?.targets);
+        return startsWithWebPrefix(target);
     }
 
     renderItem = (item, depth = 1) => {
@@ -391,14 +385,15 @@ class navigatorElement extends HTMLElement {
         }
 
         itemDiv.addEventListener('click', () => {
-            this.loadLink(item.target, {});
+            const { target, config } = this.parseTargets(item.targets);
+            this.dispatchLoadLinkRequest(target, config);
         });
 
         return itemDiv;
     }
 
-    loadLink = (target, options) => {
-        console.log('Loading link:', target, options);
+    dispatchLoadLinkRequest = (target, options) => {
+        console.log('Requesting to load link:', target, options);
         // Dispatch a custom event that parent components can listen to
         this.dispatchEvent(new CustomEvent('load-link-request', {
             bubbles: true,
