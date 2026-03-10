@@ -57,7 +57,7 @@ This is the primary way to provide data to the navigator. It expects a JSON stri
 ```
 
 - `type`: Either `navigatorCategory` or `navigatorItem`.
-- `targets`: A string defining the target of the link. It can include configuration parameters in brackets, e.g., `targetName[key1=val1,key2=val2]`.
+- `targets`: A string defining the target of the link, e.g., `xmldb:exist:///db/apps/edirom/edition-example/content/sources/edirom.xml[width=100, sort='sortHorizontally']`.
 
 ### `layout-mode` (Attribute / Property)
 
@@ -72,17 +72,24 @@ Controls the layout and styling of the component.
 
 ## Events
 
-### `load-link-request`
+### `load-links-request`
 
 Dispatched when a `navigatorItem` is clicked.
 
 **Event Detail:**
 
 ```javascript
-{
-  "target": "string",  // The target identifier extracted from the item's 'targets' field
-  "options": { ... }   // An object containing the parameters parsed from the brackets in 'targets'
-}
+"string"  // The target string from the item's 'targets' field
+```
+
+**Example:**
+
+```javascript
+document
+  .querySelector("edirom-navigator")
+  .addEventListener("load-links-request", (e) => {
+    console.log("Navigate to:", e.detail);
+  });
 ```
 
 ---
@@ -110,13 +117,8 @@ Ensure that the `edirom-icon` component is registered and available in your envi
 <script>
   document
     .querySelector("edirom-navigator")
-    .addEventListener("load-link-request", (e) => {
-      console.log(
-        "Navigate to:",
-        e.detail.target,
-        "with options:",
-        e.detail.options,
-      );
+    .addEventListener("load-links-request", (e) => {
+      console.log("Navigate to:", e.detail);
     });
 </script>
 ```
