@@ -164,18 +164,17 @@ const templates = {
         padding: 5px;
         background-color: var(--secondary-color);
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         box-sizing: border-box;
         cursor: pointer;
     }
 
-    .navigatorItem edirom-icon,
-    .navigatorItem2 edirom-icon,
-    .navigatorItem3 edirom-icon,
-    .navigatorItem4 edirom-icon,
-    .navigatorItem5 edirom-icon {
-        margin-right: 5px;
+    .icons-div {
+        display: flex;
+        gap: 4px;
+        color: #706f6f53;
     }
 
     .navigatorCategoryTitle2,
@@ -351,7 +350,23 @@ class navigatorElement extends HTMLElement {
         itemDiv.className = `navigatorItem${depthSuffix}`;
         itemDiv.id = item.id;
 
-        itemDiv.textContent = item.name;
+        const itemNameDiv = document.createElement('div');
+        itemNameDiv.appendChild(document.createTextNode(item.name));
+        itemDiv.appendChild(itemNameDiv);
+
+        if (this.mode === 'mobile') {
+            const iconsDiv = document.createElement('div');
+            iconsDiv.classList.add('icons-div');
+            itemDiv.appendChild(iconsDiv);
+            for (const icon of item.icons || []) {
+                const itemIcon = document.createElement('edirom-icon');
+                itemIcon.setAttribute('name', icon);
+                itemIcon.setAttribute('size', '1rem');
+                iconsDiv.appendChild(itemIcon);
+            }
+        }
+
+        // itemDiv.textContent = item.name;
 
         itemDiv.addEventListener('click', () => {
             this.dispatchLoadLinksRequest(item.targets);
