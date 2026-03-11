@@ -72,6 +72,21 @@ const templates = {
         top: -1px;
     }
 
+    .no-content-message {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 400;
+        color: #555;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+        text-align: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+
     </style>
     <div id="navigator-container">
     </div>
@@ -206,6 +221,21 @@ const templates = {
         top: -1px;
     }
 
+    .no-content-message {
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+        text-align: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+
     </style>
     <div id="navigator-container">
     </div>
@@ -220,10 +250,11 @@ class navigatorElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
         this.navigatorData = {};
+        this.noContentMessage = '';
     }
 
     static get observedAttributes() {
-        return ["navigator-data", "layout-mode"];
+        return ["navigator-data", "layout-mode", "no-content-message"];
     }
 
     connectedCallback() {
@@ -246,6 +277,9 @@ class navigatorElement extends HTMLElement {
         } else if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
             this.applyTemplate();
+            this.renderNavigator();
+        } else if (name === "no-content-message") {
+            this.noContentMessage = newValue || '';
             this.renderNavigator();
         }
 
@@ -270,6 +304,16 @@ class navigatorElement extends HTMLElement {
         container.innerHTML = '';
 
         const navigatorDefinition = this.navigatorData?.navigatorDefinition || [];
+
+        if (navigatorDefinition.length === 0) {
+            if (this.noContentMessage) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'no-content-message';
+                messageDiv.textContent = this.noContentMessage;
+                container.appendChild(messageDiv);
+            }
+            return;
+        }
 
         navigatorDefinition.forEach(category => {
             let categoryElement = this.renderCategory(category, 1);

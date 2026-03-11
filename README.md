@@ -12,6 +12,7 @@ It supports two layout modes: `desktop` and `mobile`, adjusting its visual repre
 - **Collapsible Categories**: Nested categories can be toggled to show or hide their contents.
 - **Responsive Design**: Includes specific styles for `desktop` and `mobile` layouts.
 - **Event-Driven**: Dispatches custom events when a navigation item is clicked, allowing for decoupled integration with the rest of the Edirom application.
+- **Empty-State Message**: Displays a configurable message when no navigation data is available.
 
 ## Endpoints (Attributes and Properties)
 
@@ -35,7 +36,8 @@ This is the primary way to provide data to the navigator. It expects a JSON stri
           "id": "item-1-1",
           "name": "Title Page",
           "type": "navigatorItem",
-          "targets": "score[page=1]"
+          "targets": "score[page=1]",
+          "icons": ["description"]
         }
       ]
     },
@@ -58,6 +60,7 @@ This is the primary way to provide data to the navigator. It expects a JSON stri
 
 - `type`: Either `navigatorCategory` or `navigatorItem`.
 - `targets`: A string defining the target of the link, e.g., `xmldb:exist:///db/apps/edirom/edition-example/content/sources/edirom.xml[width=100, sort='sortHorizontally']`.
+- `icons` *(optional, `navigatorItem` only)*: An array of icon name strings (resolved via `edirom-icon`). Rendered below the item label in `mobile` mode only.
 
 ### `layout-mode` (Attribute / Property)
 
@@ -66,7 +69,25 @@ Controls the layout and styling of the component.
 **Possible Values:**
 
 - `desktop` (default): Standard list view with specific indentation for nested levels.
-- `mobile`: A touch-friendly layout with centered items and distinct styling for external links.
+- `mobile`: A touch-friendly layout with centered items and icons rendered below the item label.
+
+---
+
+### `no-content-message` (Attribute / Property)
+
+An optional message to display when `navigatorDefinition` is empty or not provided. The text is shown centered (vertically and horizontally) inside the navigator container.
+
+If this attribute is absent or set to an empty string, the container remains empty with no message.
+
+**Example:**
+
+```html
+<edirom-navigator
+  layout-mode="desktop"
+  no-content-message="No entries available."
+>
+</edirom-navigator>
+```
 
 ---
 
@@ -101,7 +122,7 @@ document
 The `edirom-navigator` has a direct dependency on the `edirom-icon` Web Component from the [Edirom Core Web Components](https://github.com/Edirom/edirom-core-web-components). It uses `edirom-icon` to:
 
 1. Display **collapsible carets** (`arrow_right` and `arrow_drop_down`) for nested categories.
-2. Display an **external link icon** (`open_in_new`) in mobile mode for items that point to external URLs (starting with `http` or `www`).
+2. Display **item icons** in mobile mode, rendered from the `icons` array field of each `navigatorItem`.
 
 Ensure that the `edirom-icon` component is registered and available in your environment for the navigator to render correctly.
 
@@ -111,6 +132,7 @@ Ensure that the `edirom-icon` component is registered and available in your envi
 <edirom-navigator
   layout-mode="desktop"
   navigator-data='{"navigatorDefinition": [...]}'
+  no-content-message="No entries available."
 >
 </edirom-navigator>
 
