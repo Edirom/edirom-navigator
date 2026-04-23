@@ -13,6 +13,7 @@ It supports two layout modes: `desktop` and `mobile`, adjusting its visual repre
 - **Responsive Design**: Includes specific styles for `desktop` and `mobile` layouts.
 - **Event-Driven**: Dispatches custom events when a navigation item is clicked, allowing for decoupled integration with the rest of the Edirom application.
 - **Empty-State Message**: Displays a configurable message when no navigation data is available.
+- **Loading State**: Displays a loading message with a spinning icon while data is being loaded.
 
 ## Endpoints (Attributes and Properties)
 
@@ -87,6 +88,52 @@ If this attribute is absent or set to an empty string, the container remains emp
   no-content-message="No entries available."
 >
 </edirom-navigator>
+```
+
+---
+
+### `is-loading` (Attribute / Property)
+
+Controls whether the navigator shows its loading animation/message instead of
+navigation entries.
+
+When active, the component renders:
+- a spinning `edirom-icon` with `name="sync"`
+- the loading text: `Inhalte werden geladen...`
+
+Accepted truthy values:
+- attribute present without value (e.g. `<edirom-navigator is-loading></edirom-navigator>`)
+- `"true"`
+- `"1"`
+
+Accepted falsy values:
+- attribute removed
+- `"false"`
+- `"0"`
+
+Notes:
+- Loading state takes precedence over both navigator entries and `no-content-message`.
+- This endpoint is useful for async fetch phases before setting `navigator-data`.
+
+**Example:**
+
+```html
+<edirom-navigator
+  layout-mode="mobile"
+  is-loading="true"
+  no-content-message="No entries available."
+></edirom-navigator>
+```
+
+```javascript
+const navigatorEl = document.querySelector("edirom-navigator");
+
+// Start loading animation
+navigatorEl.setAttribute("is-loading", "true");
+
+// After async data fetch
+navigatorEl.setAttribute("navigator-data", JSON.stringify(data));
+navigatorEl.setAttribute("is-loading", "false");
 ```
 
 ---
