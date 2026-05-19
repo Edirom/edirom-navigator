@@ -87,31 +87,6 @@ const templates = {
         box-sizing: border-box;
     }
 
-    .loading-message {
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 400;
-        color: #555;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        height: 100%;
-        width: 100%;
-        text-align: center;
-        padding: 16px;
-        box-sizing: border-box;
-    }
-
-    .loading-message edirom-icon {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
     </style>
     <div id="navigator-container">
     </div>
@@ -261,31 +236,6 @@ const templates = {
         box-sizing: border-box;
     }
 
-    .loading-message {
-        font-family: inherit;
-        font-size: 1rem;
-        font-weight: 400;
-        color: var(--primary-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        height: 100%;
-        width: 100%;
-        text-align: center;
-        padding: 16px;
-        box-sizing: border-box;
-    }
-
-    .loading-message edirom-icon {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
     </style>
     <div id="navigator-container">
     </div>
@@ -301,11 +251,10 @@ class navigatorElement extends HTMLElement {
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
         this.navigatorData = {};
         this.noContentMessage = '';
-        this.isLoading = false;
     }
 
     static get observedAttributes() {
-        return ["navigator-data", "layout-mode", "no-content-message", "is-loading"];
+        return ["navigator-data", "layout-mode", "no-content-message"];
     }
 
     connectedCallback() {
@@ -337,9 +286,6 @@ class navigatorElement extends HTMLElement {
         } else if (name === "no-content-message") {
             this.noContentMessage = newValue || '';
             this.renderNavigator();
-        } else if (name === "is-loading") {
-            this.isLoading = newValue !== null && newValue !== "false" && newValue !== "0";
-            this.renderNavigator();
         }
 
     }
@@ -363,23 +309,6 @@ class navigatorElement extends HTMLElement {
         container.innerHTML = '';
 
         const navigatorDefinition = this.navigatorData?.navigatorDefinition || [];
-
-        if (this.isLoading) {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'loading-message';
-
-            const loadingIcon = document.createElement('edirom-icon');
-            loadingIcon.setAttribute('name', 'sync');
-            loadingIcon.setAttribute('size', this.mode === 'mobile' ? '1.2rem' : '16px');
-
-            const loadingText = document.createElement('span');
-            loadingText.textContent = 'Inhalte werden geladen...';
-
-            loadingDiv.appendChild(loadingIcon);
-            loadingDiv.appendChild(loadingText);
-            container.appendChild(loadingDiv);
-            return;
-        }
 
         if (navigatorDefinition.length === 0) {
             if (this.noContentMessage) {
