@@ -214,7 +214,7 @@ const templates = {
     .icons-div {
         display: flex;
         gap: 4px;
-        color: #706f6f53;
+        color: #706f6f94;
     }
 
     .navigatorCategoryTitle2,
@@ -481,7 +481,7 @@ class navigatorElement extends HTMLElement {
             for (const icon of item.icons || []) {
                 const itemIcon = document.createElement('edirom-icon');
                 itemIcon.setAttribute('name', icon);
-                itemIcon.setAttribute('size', '1rem');
+                itemIcon.setAttribute('size', '1.15rem');
                 iconsDiv.appendChild(itemIcon);
             }
         }
