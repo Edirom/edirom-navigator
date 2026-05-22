@@ -184,6 +184,7 @@ const templates = {
         align-items: center;
         box-sizing: border-box;
         cursor: pointer;
+        border-radius: 6px;
     }
 
     .icons-div {
