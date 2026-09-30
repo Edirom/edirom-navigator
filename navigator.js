@@ -1,10 +1,49 @@
+// Colors shared by both layouts: the host page themes the component via --primary-color and
+// --secondary-color (see README "Styling"); the rules below only read the private --_nav-* aliases.
+const themeTokens = `
+        --_nav-primary: var(--primary-color, currentcolor);
+        --_nav-secondary: var(--secondary-color, #cacaca);
+        --_nav-muted: #555;
+`;
+
 const templates = {
     desktop: `
 <div>
     <style>
 
+    :host {${themeTokens}    }
+
     .hidden {
         display: none;
+    }
+
+    /* Tab bar (only rendered when there is more than one tab) */
+    .tab-list {
+        display: flex;
+        gap: 4px;
+        margin: 0 0 6px 0;
+        border-bottom: 1px solid var(--_nav-secondary);
+    }
+
+    .tab {
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--_nav-muted);
+        background: none;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        padding: 3px 8px;
+        cursor: pointer;
+    }
+
+    .tab:hover {
+        color: var(--_nav-primary);
+    }
+
+    .tab[aria-selected="true"] {
+        color: var(--_nav-primary);
+        border-bottom-color: var(--_nav-primary);
     }
 
     /* Category headings */
@@ -22,7 +61,7 @@ const templates = {
         font-size: 13px;
         font-weight: 500;
         font-variant: small-caps;
-        color: #555;
+        color: var(--_nav-muted);
         margin: 12px 0 4px 0;
     }
 
@@ -76,7 +115,7 @@ const templates = {
         font-family: inherit;
         font-size: 13px;
         font-weight: 400;
-        color: #555;
+        color: var(--_nav-muted);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -96,10 +135,7 @@ const templates = {
     mobile: `<div>
     <style>
 
-    :host {
-        --primary-color: #a3a3a3ff;
-        --secondary-color: #565656ff;
-        height: 100%;
+    :host {${themeTokens}        height: 100%;
         width: 100%;
         max-width: 100%;
         max-height: 100%;
@@ -109,6 +145,16 @@ const templates = {
 
     .hidden {
         display: none;
+    }
+
+    /* Tabs are a desktop feature: the host selects one via active-tab */
+    .tab-list {
+        display: none;
+    }
+
+    .tab-panel:not(.hidden) {
+        display: flex;
+        flex-direction: column;
     }
 
     #navigator-container {
@@ -140,7 +186,7 @@ const templates = {
         font-size: 1.3rem;
         font-weight: 500;
         font-variant: small-caps;
-        color: #555;
+        color: var(--_nav-muted);
         margin: 12px 0 14px 0;
         line-height: 0.5;
         display: flex;
@@ -157,11 +203,11 @@ const templates = {
     }
 
     .navigatorCategoryTitle::before {
-        background: linear-gradient(to right, transparent, #555);
+        background: linear-gradient(to right, transparent, var(--_nav-muted));
     }
 
     .navigatorCategoryTitle::after {
-        background: linear-gradient(to right, #555, transparent);
+        background: linear-gradient(to right, var(--_nav-muted), transparent);
     }
 
 
@@ -170,14 +216,14 @@ const templates = {
     .navigatorItem3,
     .navigatorItem4,
     .navigatorItem5 {
-        color: var(--primary-color);
+        color: var(--_nav-primary);
         width: min(70vw, 400px);
         height: auto;
         min-height: 40px;
         font-size: 1rem;
         margin: 10px auto;
         padding: 5px;
-        background-color: var(--secondary-color);
+        background-color: var(--_nav-secondary);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -200,7 +246,7 @@ const templates = {
         font-family: inherit;
         font-size: 1.15rem;
         font-weight: 400;
-        color: #555;
+        color: var(--_nav-muted);
         margin: 12px 0 14px 0;
         line-height: 0.5;
         display: flex;
@@ -226,7 +272,7 @@ const templates = {
         font-family: inherit;
         font-size: 1rem;
         font-weight: 400;
-        color: var(--primary-color);
+        color: var(--_nav-primary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -250,16 +296,19 @@ class navigatorElement extends HTMLElement {
         super();
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
-        this.navigatorData = {};
+        this.tabs = this.normalizeTabs(null);
+        this.showTabBar = false;
+        this.activeTab = null;
+        this.panelCache = new Map();
         this.noContentMessage = '';
     }
 
     static get observedAttributes() {
-        return ["navigator-data", "layout-mode", "no-content-message"];
+        return ["navigator-data", "layout-mode", "no-content-message", "active-tab"];
     }
 
     connectedCallback() {
-        console.log("Navigator connected!");
+        console.log("Navigator connected!???");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.applyTemplate();
         this.renderNavigator();
@@ -273,12 +322,14 @@ class navigatorElement extends HTMLElement {
         console.log(`Attribute: ${name} changed from ${oldValue} to ${newValue}`);
         if (oldValue === newValue) return;
         if (name === "navigator-data") {
+            let data = null;
             try {
-                this.navigatorData = JSON.parse(newValue);
+                data = JSON.parse(newValue);
             } catch (error) {
                 console.warn("Invalid navigator-data attribute payload", error);
-                this.navigatorData = {};
             }
+            this.tabs = this.normalizeTabs(data);
+            this.showTabBar = Array.isArray(data) && data.length > 0;
             this.renderNavigator();
         } else if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
@@ -287,17 +338,30 @@ class navigatorElement extends HTMLElement {
         } else if (name === "no-content-message") {
             this.noContentMessage = newValue || '';
             this.renderNavigator();
+        } else if (name === "active-tab") {
+            this.activeTab = newValue;
+            this.updateActiveTab();
         }
 
     }
 
     getLayoutMode = (layoutMode) => layoutMode === 'mobile' ? 'mobile' : 'desktop';
 
+    // Accepts the legacy object `{ navigatorDefinition }` (one tab, no tab bar)
+    // or an array of `{ id, name, navigatorDefinition }` (a tab bar, even for a single entry)
+    normalizeTabs = (data) =>
+        (Array.isArray(data) && data.length ? data : [data]).map((tab, i) => ({
+            id: String(tab?.id ?? `tab-${i}`),
+            name: tab?.name ?? '',
+            navigatorDefinition: tab?.navigatorDefinition || []
+        }));
+
     applyTemplate = () => {
         const template = document.createElement("template");
         template.innerHTML = templates[this.mode];
         this.shadow.innerHTML = '';
         this.shadow.append(template.content.cloneNode(true));
+        this.panelCache = new Map();
     }
 
     renderNavigator = () => {
@@ -309,21 +373,101 @@ class navigatorElement extends HTMLElement {
 
         container.innerHTML = '';
 
-        const navigatorDefinition = this.navigatorData?.navigatorDefinition || [];
+        if (this.showTabBar) container.appendChild(this.renderTabList());
 
-        if (navigatorDefinition.length === 0) {
+        const previousPanels = this.panelCache;
+        this.panelCache = new Map();
+        this.tabs.forEach((tab, i) => {
+            const panel = this.getPanel(tab, previousPanels.get(tab.id));
+            if (this.showTabBar) {
+                panel.setAttribute('role', 'tabpanel');
+                panel.setAttribute('aria-labelledby', `navigator-tab-${i}`);
+            } else {
+                panel.removeAttribute('role');
+                panel.removeAttribute('aria-labelledby');
+            }
+            container.appendChild(panel);
+        });
+
+        this.updateActiveTab();
+    }
+
+    // Reuses the previous panel if its definition is unchanged, so fold state survives re-renders
+    // triggered by another tab's data. Empty panels are always rebuilt (they show no-content-message).
+    getPanel = (tab, cached) => {
+        const signature = JSON.stringify(tab.navigatorDefinition);
+        const panel = cached && tab.navigatorDefinition.length > 0 && cached.signature === signature
+            ? cached.panel
+            : this.renderPanel(tab);
+        this.panelCache.set(tab.id, { signature, panel });
+        return panel;
+    }
+
+    renderPanel = (tab) => {
+        const panel = document.createElement('div');
+        panel.className = 'tab-panel';
+        panel.dataset.tabId = tab.id;
+
+        if (tab.navigatorDefinition.length === 0) {
             if (this.noContentMessage) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'no-content-message';
                 messageDiv.textContent = this.noContentMessage;
-                container.appendChild(messageDiv);
+                panel.appendChild(messageDiv);
             }
-            return;
+            return panel;
         }
 
-        navigatorDefinition.forEach(category => {
-            let categoryElement = this.renderCategory(category, 1);
-            container.appendChild(categoryElement);
+        tab.navigatorDefinition.forEach(category => {
+            panel.appendChild(this.renderCategory(category, 1));
+        });
+        return panel;
+    }
+
+    renderTabList = () => {
+        const list = document.createElement('div');
+        list.className = 'tab-list';
+        list.setAttribute('role', 'tablist');
+
+        this.tabs.forEach((tab, i) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'tab';
+            button.id = `navigator-tab-${i}`;
+            button.dataset.tabId = tab.id;
+            button.setAttribute('role', 'tab');
+            button.textContent = tab.name;
+            button.addEventListener('click', () => this.setAttribute('active-tab', tab.id));
+            list.appendChild(button);
+        });
+
+        list.addEventListener('keydown', this.onTabKeydown);
+        return list;
+    }
+
+    onTabKeydown = (event) => {
+        const buttons = [...this.shadow.querySelectorAll('.tab')];
+        const current = buttons.indexOf(event.target.closest('.tab'));
+        const targets = { ArrowLeft: current - 1, ArrowRight: current + 1, Home: 0, End: buttons.length - 1 };
+        if (current < 0 || !(event.key in targets)) return;
+
+        event.preventDefault();
+        const next = buttons[(targets[event.key] + buttons.length) % buttons.length];
+        this.setAttribute('active-tab', next.dataset.tabId);
+        next.focus();
+    }
+
+    // The requested tab if it exists, otherwise the first one (the attribute is left untouched)
+    updateActiveTab = () => {
+        const activeId = (this.tabs.find(tab => tab.id === this.activeTab) ?? this.tabs[0]).id;
+
+        this.shadow.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.toggle('hidden', panel.dataset.tabId !== activeId);
+        });
+        this.shadow.querySelectorAll('.tab').forEach(button => {
+            const selected = button.dataset.tabId === activeId;
+            button.setAttribute('aria-selected', String(selected));
+            button.tabIndex = selected ? 0 : -1;
         });
     }
 
@@ -332,6 +476,10 @@ class navigatorElement extends HTMLElement {
         const depthSuffix = depth > 1 ? depth : '';
         categoryDiv.className = `navigatorCategory${depthSuffix}`;
         categoryDiv.id = category.id;
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.id = `${category.id}-items`;
+        itemsDiv.className = depth > 1 ? 'hidden' : '';
 
         const titleDiv = document.createElement('div');
         titleDiv.className = `navigatorCategoryTitle${depthSuffix}`;
@@ -349,7 +497,6 @@ class navigatorElement extends HTMLElement {
             titleSpan.appendChild(caretIcon);
 
             titleDiv.addEventListener('click', () => {
-                const itemsDiv = this.shadow.getElementById(`${category.id}-items`);
                 if (titleSpan.classList.contains('folded')) {
                     titleSpan.classList.remove('folded');
                     caretIcon.name = 'arrow_drop_down';
@@ -370,11 +517,6 @@ class navigatorElement extends HTMLElement {
         }
 
         categoryDiv.appendChild(titleDiv);
-
-        // Create items container
-        const itemsDiv = document.createElement('div');
-        itemsDiv.id = `${category.id}-items`;
-        itemsDiv.className = depth > 1 ? 'hidden' : '';
 
         if (category.items) {
             category.items.forEach(item => {

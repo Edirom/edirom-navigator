@@ -1,11 +1,11 @@
 # Edirom Navigator
 
-Hierarchical navigation menu for browsing Edirom editions: supports collapsible categories, responsive desktop/mobile layouts, and custom empty/loading states.
+Hierarchical navigation menu for browsing Edirom editions: collapsible categories, desktop/mobile layouts, optional tabs, and a configurable empty state.
 
 ## Usage
 
 ```html
-<script defer src="path/to/edirom-navigator/edirom-navigator.js" type="module"></script>
+<script defer src="path/to/edirom-navigator/navigator.js" type="module"></script>
 
 <edirom-navigator
   layout-mode="desktop"
@@ -25,10 +25,10 @@ Hierarchical navigation menu for browsing Edirom editions: supports collapsible 
 
 | Attribute | Type | Description |
 |---|---|---|
-| `navigator-data` | JSON string or object | Navigation structure (see below). Can be set as an HTML attribute (JSON string) or DOM property (object). |
+| `navigator-data` | JSON string | Navigation structure, or an array of them to get [tabs](#tabs). Attribute only, so set it with `setAttribute`. |
+| `active-tab` | string | Id of the tab to show. Falls back to the first tab if missing or unknown. Updated when a user clicks a tab. |
 | `layout-mode` | `"desktop"` \| `"mobile"` | Layout style. Desktop: indented list. Mobile: centered items with icons below labels. Default: `"desktop"` |
-| `no-content-message` | string | Message to display when `navigatorDefinition` is empty. If omitted, container remains empty. |
-| `is-loading` | boolean | Show loading spinner and text while data loads. Takes precedence over entries and `no-content-message`. |
+| `no-content-message` | string | Message shown in every panel whose `navigatorDefinition` is empty. If omitted, the panel stays empty. |
 
 ## Events
 
@@ -38,7 +38,7 @@ Hierarchical navigation menu for browsing Edirom editions: supports collapsible 
 
 ## Data Schema
 
-Pass navigation structure via the `navigator-data` attribute or property:
+Pass the navigation structure via the `navigator-data` attribute:
 
 ```json
 {
@@ -73,17 +73,50 @@ Pass navigation structure via the `navigator-data` attribute or property:
 - `targets`: Navigation target URL (e.g. `xmldb:exist:///db/apps/edirom/.../file.xml[width=100]`). Items only.
 - `icons`: Array of icon names (resolved via `edirom-icon`). Rendered below item label in mobile mode only. Items only.
 
+## Tabs
+
+The component does not care what a tab contains; the host decides. Pass an array of definitions instead of a single object, each with an `id`, a `name` (the tab label) and its own `navigatorDefinition`:
+
+```json
+[
+  { "id": "main", "name": "Navigation", "navigatorDefinition": [ ... ] },
+  { "id": "concordance", "name": "Konkordanz", "navigatorDefinition": [ ... ] }
+]
+```
+
+- The tab bar appears whenever an array is passed, even with a single entry. A single object (the form without tabs) renders without a bar.
+- The tab bar is a desktop feature. In `mobile` layout it is hidden, and the host picks the visible tab via `active-tab`.
+- `active-tab` is sticky: it survives re-setting `navigator-data`, and a tab that disappears and comes back becomes active again.
+- Switching tabs keeps fold state, and a tab whose definition did not change is not re-rendered when another tab's data changes.
+- Ids only need to be unique within a tab.
+
 ## Examples
 
-**Loading state:**
+**Adding a tab and switching to it:**
 
 ```javascript
 const nav = document.querySelector("edirom-navigator");
-nav.setAttribute("is-loading", "true");
+nav.setAttribute("navigator-data", JSON.stringify([main, concordance]));
+nav.setAttribute("active-tab", "concordance");
 
-// After fetch
-nav.setAttribute("navigator-data", JSON.stringify(data));
-nav.removeAttribute("is-loading");
+// Remove the tab again; the component falls back to the first tab
+nav.setAttribute("navigator-data", JSON.stringify([main]));
+```
+
+## Styling
+
+Themed via CSS custom properties, overridable on the element or any ancestor. Both layouts use the same properties:
+
+| Custom property | Default | Description |
+|---|---|---|
+| `--primary-color` | `currentcolor` | Text color: active tab, and the items in `mobile` layout |
+| `--secondary-color` | `#cacaca` | Tab bar underline in `desktop` layout; item background in `mobile` layout |
+
+```css
+edirom-navigator {
+  --primary-color: #232a44;
+  --secondary-color: #e9d9af;
+}
 ```
 
 ## Dependencies
