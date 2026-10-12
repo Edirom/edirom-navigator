@@ -46,6 +46,16 @@ const templates = {
         border-bottom-color: var(--_nav-primary);
     }
 
+    /* Signals that an unselected tab was just created */
+    .tab.flash:not([aria-selected="true"]) {
+        animation: tab-flash 1.2s ease-out;
+    }
+
+    @keyframes tab-flash {
+        0%, 40% { background-color: var(--_nav-secondary); }
+        100% { background-color: transparent; }
+    }
+
     /* Category headings */
     .navigatorCategory,
     .navigatorCategory2,
@@ -297,6 +307,8 @@ class navigatorElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
         this.tabs = this.normalizeTabs(null);
+        this.tabIds = null; // ids of the last navigator-data; null until the first one arrived
+        this.flashTabIds = new Set();
         this.showTabBar = false;
         this.activeTab = null;
         this.panelCache = new Map();
@@ -328,8 +340,12 @@ class navigatorElement extends HTMLElement {
             } catch (error) {
                 console.warn("Invalid navigator-data attribute payload", error);
             }
+            const previousIds = this.tabIds;
             this.tabs = this.normalizeTabs(data);
+            this.tabIds = new Set(this.tabs.map(tab => tab.id));
             this.showTabBar = Array.isArray(data) && data.length > 0;
+            // The first navigator-data is the initial state, not a new tab
+            this.flashTabIds = this.showTabBar && previousIds ? this.findNewTabIds(previousIds) : new Set();
             this.renderNavigator();
         } else if (name === "layout-mode") {
             this.mode = this.getLayoutMode(newValue);
@@ -356,6 +372,17 @@ class navigatorElement extends HTMLElement {
             navigatorDefinition: tab?.navigatorDefinition || []
         }));
 
+    // Ids of the unselected tabs that did not exist in the previous navigator-data
+    findNewTabIds = (previousIds) => {
+        const activeId = this.getActiveTabId();
+        return new Set(this.tabs
+            .filter(tab => tab.id !== activeId && !previousIds.has(tab.id))
+            .map(tab => tab.id));
+    }
+
+    // The requested tab if it exists, otherwise the first one (the attribute is left untouched)
+    getActiveTabId = () => (this.tabs.find(tab => tab.id === this.activeTab) ?? this.tabs[0]).id;
+
     applyTemplate = () => {
         const template = document.createElement("template");
         template.innerHTML = templates[this.mode];
@@ -365,6 +392,10 @@ class navigatorElement extends HTMLElement {
     }
 
     renderNavigator = () => {
+        // Flash once when the tab is created, not on every later render
+        const flashTabIds = this.flashTabIds;
+        this.flashTabIds = new Set();
+
         if (!this.isConnected) return; // skip until attached
         console.log("Rendering navigator with data");
         const container = this.shadow.getElementById("navigator-container");
@@ -373,7 +404,7 @@ class navigatorElement extends HTMLElement {
 
         container.innerHTML = '';
 
-        if (this.showTabBar) container.appendChild(this.renderTabList());
+        if (this.showTabBar) container.appendChild(this.renderTabList(flashTabIds));
 
         const previousPanels = this.panelCache;
         this.panelCache = new Map();
@@ -424,7 +455,7 @@ class navigatorElement extends HTMLElement {
         return panel;
     }
 
-    renderTabList = () => {
+    renderTabList = (flashTabIds = new Set()) => {
         const list = document.createElement('div');
         list.className = 'tab-list';
         list.setAttribute('role', 'tablist');
@@ -437,6 +468,7 @@ class navigatorElement extends HTMLElement {
             button.dataset.tabId = tab.id;
             button.setAttribute('role', 'tab');
             button.textContent = tab.name;
+            if (flashTabIds.has(tab.id)) button.classList.add('flash');
             button.addEventListener('click', () => this.setAttribute('active-tab', tab.id));
             list.appendChild(button);
         });
@@ -457,9 +489,8 @@ class navigatorElement extends HTMLElement {
         next.focus();
     }
 
-    // The requested tab if it exists, otherwise the first one (the attribute is left untouched)
     updateActiveTab = () => {
-        const activeId = (this.tabs.find(tab => tab.id === this.activeTab) ?? this.tabs[0]).id;
+        const activeId = this.getActiveTabId();
 
         this.shadow.querySelectorAll('.tab-panel').forEach(panel => {
             panel.classList.toggle('hidden', panel.dataset.tabId !== activeId);
