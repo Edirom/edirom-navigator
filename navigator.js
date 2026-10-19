@@ -320,7 +320,7 @@ class navigatorElement extends HTMLElement {
     }
 
     connectedCallback() {
-        console.log("Navigator connected!???");
+        console.log("Navigator connected");
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.applyTemplate();
         this.renderNavigator();
@@ -468,7 +468,10 @@ class navigatorElement extends HTMLElement {
             button.dataset.tabId = tab.id;
             button.setAttribute('role', 'tab');
             button.textContent = tab.name;
-            if (flashTabIds.has(tab.id)) button.classList.add('flash');
+            if (flashTabIds.has(tab.id)) {
+                button.classList.add('flash');
+                button.addEventListener('animationend', () => button.classList.remove('flash'), { once: true });
+            }
             button.addEventListener('click', () => this.setAttribute('active-tab', tab.id));
             list.appendChild(button);
         });
@@ -497,6 +500,7 @@ class navigatorElement extends HTMLElement {
         });
         this.shadow.querySelectorAll('.tab').forEach(button => {
             const selected = button.dataset.tabId === activeId;
+            if (selected) button.classList.remove('flash');
             button.setAttribute('aria-selected', String(selected));
             button.tabIndex = selected ? 0 : -1;
         });
