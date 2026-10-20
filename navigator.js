@@ -6,44 +6,29 @@ const themeTokens = `
         --_nav-muted: #555;
 `;
 
-const templates = {
-    desktop: `
-<div>
-    <style>
+// Minimum horizontal travel of a swipe, and how steep it may be (|dy| / |dx|) before it counts as scrolling
+const SWIPE_MIN_DISTANCE = 50;
+const SWIPE_MAX_SLOPE = 0.6;
 
+// Rules that both layouts have in common. A layout's own rules follow and override them where they differ.
+const sharedStyles = `
     :host {${themeTokens}    }
 
     .hidden {
         display: none;
     }
 
-    /* Tab bar (only rendered when there is more than one tab) */
-    .tab-list {
-        display: flex;
-        gap: 4px;
-        margin: 0 0 6px 0;
-        border-bottom: 1px solid var(--_nav-secondary);
-    }
-
+    /* Tabs: the bar is rendered whenever navigator-data is an array. Each layout sizes and shapes them. */
     .tab {
         font-family: inherit;
-        font-size: 13px;
         color: var(--_nav-muted);
         background: none;
         border: 0;
-        border-bottom: 2px solid transparent;
-        margin-bottom: -1px;
-        padding: 3px 8px;
         cursor: pointer;
-    }
-
-    .tab:hover {
-        color: var(--_nav-primary);
     }
 
     .tab[aria-selected="true"] {
         color: var(--_nav-primary);
-        border-bottom-color: var(--_nav-primary);
     }
 
     /* Signals that an unselected tab was just created */
@@ -52,7 +37,7 @@ const templates = {
     }
 
     @keyframes tab-flash {
-        0%, 40% { background-color: var(--_nav-secondary); }
+        0%, 40% { background-color: var(--_nav-flash); }
         100% { background-color: transparent; }
     }
 
@@ -65,13 +50,71 @@ const templates = {
         margin: 0 0 6px 0;
     }
 
-
     .navigatorCategoryTitle {
         font-family: inherit;
-        font-size: 13px;
         font-weight: 500;
         font-variant: small-caps;
         color: var(--_nav-muted);
+    }
+
+    .navigatorCategoryTitle2 span,
+    .navigatorCategoryTitle3 span,
+    .navigatorCategoryTitle4 span,
+    .navigatorCategoryTitle5 span {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .caret-icon {
+        position: relative;
+        top: -1px;
+    }
+
+    .no-content-message {
+        font-family: inherit;
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+        text-align: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+`;
+
+const layoutStyles = {
+    desktop: `
+    :host {
+        --_nav-flash: var(--_nav-secondary);
+    }
+
+    /* Tab bar: an underlined row */
+    .tab-list {
+        display: flex;
+        gap: 4px;
+        margin: 0 0 6px 0;
+        border-bottom: 1px solid var(--_nav-secondary);
+    }
+
+    .tab {
+        font-size: 13px;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        padding: 3px 8px;
+    }
+
+    .tab:hover {
+        color: var(--_nav-primary);
+    }
+
+    .tab[aria-selected="true"] {
+        border-bottom-color: var(--_nav-primary);
+    }
+
+    .navigatorCategoryTitle {
+        font-size: 13px;
         margin: 12px 0 4px 0;
     }
 
@@ -99,14 +142,6 @@ const templates = {
     .navigatorItem4, .navigatorCategoryTitle5 { margin-left: 48px; }
     .navigatorItem5 { margin-left: 60px; }
 
-    .navigatorCategoryTitle2 span,
-    .navigatorCategoryTitle3 span,
-    .navigatorCategoryTitle4 span,
-    .navigatorCategoryTitle5 span {
-        display: inline-flex;
-        align-items: center;
-    }
-
     /* Keep icon and label visually separated inside buttons */
     .navigatorItem edirom-icon,
     .navigatorItem2 edirom-icon,
@@ -116,62 +151,28 @@ const templates = {
         margin-right: 6px;
     }
 
-    .caret-icon {
-        position: relative;
-        top: -1px;
-    }
-
     .no-content-message {
-        font-family: inherit;
         font-size: 13px;
-        font-weight: 400;
         color: var(--_nav-muted);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        width: 100%;
-        text-align: center;
-        padding: 16px;
-        box-sizing: border-box;
     }
-
-    </style>
-    <div id="navigator-container">
-    </div>
-</div>
 `,
 
-    mobile: `<div>
-    <style>
-
-    :host {${themeTokens}        height: 100%;
+    mobile: `
+    :host {
+        --_nav-flash: var(--_nav-secondary);
+        display: block;
+        height: 100%;
         width: 100%;
         max-width: 100%;
         max-height: 100%;
-        overflow-y: auto;
-        overflow-x: auto;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    /* Tabs are a desktop feature: the host selects one via active-tab */
-    .tab-list {
-        display: none;
-    }
-
-    .tab-panel:not(.hidden) {
-        display: flex;
-        flex-direction: column;
+        overflow: hidden;
     }
 
     #navigator-container {
         display: flex;
         flex-direction: column;
-        /* align-items: center; removed to allow full width for lines */
-        overflow-x: hidden;
+        height: 100%;
+        overflow: hidden;
         -webkit-user-select: none;
         user-select: none;
     }
@@ -180,23 +181,86 @@ const templates = {
         -webkit-tap-highlight-color: transparent;
     }
 
-    /* Category headings */
+    /* Tab bar: a slim segmented control, tinted from the theme colors so that it stays in the background.
+       Swiping the panels switches tabs, too. */
+    #navigator-tabs {
+        flex: none;
+    }
+
+    .tab-list {
+        display: flex;
+        gap: 2px;
+        width: min(calc(100% - 32px), 400px);
+        margin: 8px auto 2px;
+        padding: 2px;
+        box-sizing: border-box;
+        border-radius: 8px;
+        background-color: color-mix(in srgb, var(--_nav-secondary) 50%, transparent);
+    }
+
+    .tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .tab[aria-selected="true"] {
+        color: var(--_nav-secondary);
+        background-color: color-mix(in srgb, var(--_nav-primary) 87%, transparent);
+    }
+
+    /* The panels scroll, the tab bar above them stays in place. Vertical panning is left to the browser,
+       horizontal gestures are reported to the swipe handling in the script. */
+    #navigator-panels {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        touch-action: pan-y pinch-zoom;
+        margin-top: 6px;
+    }
+
+    .tab-panel:not(.hidden) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* The panel of a tab that was just switched to slides in from the side it lies on */
+    .tab-panel[data-enter] {
+        animation: tab-enter 0.22s ease-out;
+    }
+
+    .tab-panel[data-enter="next"] { --_enter-from: 28px; }
+    .tab-panel[data-enter="prev"] { --_enter-from: -28px; }
+
+    @keyframes tab-enter {
+        from { opacity: 0; transform: translateX(var(--_enter-from)); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .tab { transition: none; }
+        .tab-panel[data-enter] { animation: none; }
+    }
+
     .navigatorCategory,
     .navigatorCategory2,
     .navigatorCategory3,
     .navigatorCategory4,
     .navigatorCategory5 {
-        margin: 0 0 6px 0;
         text-align: center;
     }
 
 
     .navigatorCategoryTitle {
-        font-family: inherit;
         font-size: 1.3rem;
-        font-weight: 500;
-        font-variant: small-caps;
-        color: var(--_nav-muted);
         margin: 12px 0 14px 0;
         line-height: 0.5;
         display: flex;
@@ -265,40 +329,20 @@ const templates = {
         cursor: pointer;
     }
 
-    .navigatorCategoryTitle2 span,
-    .navigatorCategoryTitle3 span,
-    .navigatorCategoryTitle4 span,
-    .navigatorCategoryTitle5 span {
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .caret-icon {
-        position: relative;
-        top: -1px;
-    }
-
     .no-content-message {
-        font-family: inherit;
         font-size: 1rem;
-        font-weight: 400;
         color: var(--_nav-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        width: 100%;
-        text-align: center;
-        padding: 16px;
-        box-sizing: border-box;
     }
-
-    </style>
-    <div id="navigator-container">
-    </div>
-</div>
 `
 };
+
+const templates = Object.fromEntries(Object.entries(layoutStyles).map(([mode, styles]) => [mode, `
+    <style>${sharedStyles}${styles}</style>
+    <div id="navigator-container">
+        <div id="navigator-tabs"></div>
+        <div id="navigator-panels"></div>
+    </div>
+`]));
 
 
 class navigatorElement extends HTMLElement {
@@ -307,12 +351,18 @@ class navigatorElement extends HTMLElement {
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
         this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
         this.tabs = this.normalizeTabs(null);
-        this.tabIds = null; // ids of the last navigator-data; null until the first one arrived
+        this.tabIds = null; // ids of the last navigator-data with tabs; null until the first one arrived
         this.flashTabIds = new Set();
         this.showTabBar = false;
         this.activeTab = null;
+        this.renderedActiveId = null; // the tab that was active after the last render; null until the first one
+        this.swipeStart = null;
         this.panelCache = new Map();
         this.noContentMessage = '';
+
+        this.shadow.addEventListener('pointerdown', this.onSwipeStart);
+        this.shadow.addEventListener('pointerup', this.onSwipeEnd);
+        this.shadow.addEventListener('pointercancel', () => { this.swipeStart = null; });
     }
 
     static get observedAttributes() {
@@ -342,8 +392,9 @@ class navigatorElement extends HTMLElement {
             }
             const previousIds = this.tabIds;
             this.tabs = this.normalizeTabs(data);
-            this.tabIds = new Set(this.tabs.map(tab => tab.id));
             this.showTabBar = Array.isArray(data) && data.length > 0;
+            // Only data with tabs counts: a tab that returns after a legacy (tab-less) object is not new
+            if (this.showTabBar) this.tabIds = new Set(this.tabs.map(tab => tab.id));
             // The first navigator-data is the initial state, not a new tab
             this.flashTabIds = this.showTabBar && previousIds ? this.findNewTabIds(previousIds) : new Set();
             this.renderNavigator();
@@ -389,6 +440,7 @@ class navigatorElement extends HTMLElement {
         this.shadow.innerHTML = '';
         this.shadow.append(template.content.cloneNode(true));
         this.panelCache = new Map();
+        this.renderedActiveId = null;
     }
 
     renderNavigator = () => {
@@ -398,18 +450,20 @@ class navigatorElement extends HTMLElement {
 
         if (!this.isConnected) return; // skip until attached
         console.log("Rendering navigator with data");
-        const container = this.shadow.getElementById("navigator-container");
+        const tabsMount = this.shadow.getElementById("navigator-tabs");
+        const panelsMount = this.shadow.getElementById("navigator-panels");
 
-        if (!container) return;
+        if (!tabsMount || !panelsMount) return;
 
-        container.innerHTML = '';
-
-        if (this.showTabBar) container.appendChild(this.renderTabList(flashTabIds));
+        tabsMount.replaceChildren(...(this.showTabBar ? [this.renderTabList(flashTabIds)] : []));
 
         const previousPanels = this.panelCache;
         this.panelCache = new Map();
-        this.tabs.forEach((tab, i) => {
-            const panel = this.getPanel(tab, previousPanels.get(tab.id));
+        const rebuiltTabIds = new Set();
+        const panels = this.tabs.map((tab, i) => {
+            const cached = previousPanels.get(tab.id);
+            const panel = this.getPanel(tab, cached);
+            if (panel !== cached?.panel) rebuiltTabIds.add(tab.id);
             if (this.showTabBar) {
                 panel.setAttribute('role', 'tabpanel');
                 panel.setAttribute('aria-labelledby', `navigator-tab-${i}`);
@@ -417,10 +471,14 @@ class navigatorElement extends HTMLElement {
                 panel.removeAttribute('role');
                 panel.removeAttribute('aria-labelledby');
             }
-            container.appendChild(panel);
+            return panel;
         });
+        panelsMount.replaceChildren(...panels);
 
         this.updateActiveTab();
+
+        // New content starts at the top
+        if (rebuiltTabIds.has(this.getActiveTabId())) panelsMount.scrollTop = 0;
     }
 
     // Reuses the previous panel if its definition is unchanged, so fold state survives re-renders
@@ -438,6 +496,9 @@ class navigatorElement extends HTMLElement {
         const panel = document.createElement('div');
         panel.className = 'tab-panel';
         panel.dataset.tabId = tab.id;
+        panel.addEventListener('animationend', (event) => {
+            if (event.target === panel) delete panel.dataset.enter;
+        });
 
         if (tab.navigatorDefinition.length === 0) {
             if (this.noContentMessage) {
@@ -472,7 +533,7 @@ class navigatorElement extends HTMLElement {
                 button.classList.add('flash');
                 button.addEventListener('animationend', () => button.classList.remove('flash'), { once: true });
             }
-            button.addEventListener('click', () => this.setAttribute('active-tab', tab.id));
+            button.addEventListener('click', () => this.selectTab(tab.id));
             list.appendChild(button);
         });
 
@@ -488,16 +549,76 @@ class navigatorElement extends HTMLElement {
 
         event.preventDefault();
         const next = buttons[(targets[event.key] + buttons.length) % buttons.length];
-        this.setAttribute('active-tab', next.dataset.tabId);
+        this.selectTab(next.dataset.tabId);
         next.focus();
+    }
+
+    // Every way the user can switch tabs (click, keys, swipe) ends here. Setting active-tab from the
+    // host stays silent, like the value of an input, so the host does not hear about its own changes.
+    selectTab = (id) => {
+        const previousId = this.getActiveTabId();
+        this.setAttribute('active-tab', id);
+        if (id !== previousId) {
+            this.dispatchEvent(new CustomEvent('active-tab-changed', {
+                bubbles: true,
+                composed: true,
+                detail: { activeTab: id }
+            }));
+        }
+    }
+
+    // Swiping is a mobile gesture. The panels leave horizontal gestures to the page (touch-action: pan-y),
+    // so a finger that moves mostly sideways ends in a pointerup that is recognized here.
+    onSwipeStart = (event) => {
+        this.swipeStart = null;
+        if (this.mode !== 'mobile' || !event.isPrimary || event.pointerType === 'mouse') return;
+        if (!event.target.closest?.('#navigator-panels')) return;
+        this.swipeStart = { x: event.clientX, y: event.clientY };
+    }
+
+    onSwipeEnd = (event) => {
+        const start = this.swipeStart;
+        this.swipeStart = null;
+        if (!start) return;
+
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dy) > Math.abs(dx) * SWIPE_MAX_SLOPE) return;
+
+        // Swiping left pulls the next tab in from the right
+        this.selectNeighbourTab(dx < 0 ? 1 : -1);
+    }
+
+    selectNeighbourTab = (step) => {
+        const activeId = this.getActiveTabId();
+        const neighbour = this.tabs[this.tabs.findIndex(tab => tab.id === activeId) + step];
+        if (neighbour) this.selectTab(neighbour.id);
     }
 
     updateActiveTab = () => {
         const activeId = this.getActiveTabId();
+        const previousId = this.renderedActiveId;
+        const switched = previousId !== null && previousId !== activeId;
+        const ids = this.tabs.map(tab => tab.id);
+        // Which side the newly active panel comes from, for layouts that animate the switch.
+        // Unknown if the previous tab is gone.
+        const enter = switched && ids.includes(previousId)
+            ? (ids.indexOf(activeId) > ids.indexOf(previousId) ? 'next' : 'prev')
+            : null;
+        this.renderedActiveId = activeId;
 
         this.shadow.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.classList.toggle('hidden', panel.dataset.tabId !== activeId);
+            const active = panel.dataset.tabId === activeId;
+            panel.classList.toggle('hidden', !active);
+            if (active && enter) {
+                panel.dataset.enter = enter;
+            } else {
+                delete panel.dataset.enter;
+            }
         });
+        // A tab is shown from its top, not at the scroll position of the one before
+        if (switched) this.shadow.getElementById('navigator-panels').scrollTop = 0;
+
         this.shadow.querySelectorAll('.tab').forEach(button => {
             const selected = button.dataset.tabId === activeId;
             if (selected) button.classList.remove('flash');
@@ -615,4 +736,3 @@ class navigatorElement extends HTMLElement {
 }
 
 customElements.define("edirom-navigator", navigatorElement);
-
