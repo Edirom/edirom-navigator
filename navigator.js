@@ -160,6 +160,7 @@ const layoutStyles = {
     mobile: `
     :host {
         --_nav-flash: var(--_nav-secondary);
+        --_tabs-height: 1.8rem;
         display: block;
         height: 100%;
         width: 100%;
@@ -169,6 +170,7 @@ const layoutStyles = {
     }
 
     #navigator-container {
+        position: relative;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -182,26 +184,35 @@ const layoutStyles = {
     }
 
     /* Tab bar: a slim segmented control, tinted from the theme colors so that it stays in the background.
-       Swiping the panels switches tabs, too. */
+       It floats above the panels (which scroll underneath, blurred through the translucent bar), and
+       nothing is visible above it. Swiping the panels switches tabs, too. */
     #navigator-tabs {
-        flex: none;
+        position: absolute;
+        top: 8px;
+        left: 0;
+        right: 0;
+        z-index: 1;
     }
 
     .tab-list {
         display: flex;
         gap: 2px;
         width: min(calc(100% - 32px), 400px);
-        margin: 8px auto 2px;
+        height: var(--_tabs-height);
+        margin: 0 auto;
         padding: 2px;
         box-sizing: border-box;
         border-radius: 8px;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--_nav-primary) 22%, transparent);
         background-color: color-mix(in srgb, var(--_nav-secondary) 50%, transparent);
     }
 
     .tab {
         flex: 1 1 0;
         min-width: 0;
-        padding: 4px 10px;
+        padding: 0 10px;
         border-radius: 6px;
         font-size: 0.85rem;
         font-weight: 500;
@@ -224,7 +235,13 @@ const layoutStyles = {
         overflow-x: hidden;
         overflow-y: auto;
         touch-action: pan-y pinch-zoom;
-        margin-top: 6px;
+    }
+
+    /* With a tab bar the panels start below the strip above it, and are padded by the height of the bar
+       plus the gap, so that they begin under the bar and scroll up behind it. */
+    #navigator-tabs:not(:empty) + #navigator-panels {
+        margin-top: 8px;
+        padding-top: calc(var(--_tabs-height) + 8px);
     }
 
     .tab-panel:not(.hidden) {
