@@ -327,7 +327,7 @@ const layoutStyles = {
     .icons-div {
         display: flex;
         gap: 4px;
-        color: #706f6f94;
+        color: color-mix(in oklch, var(--_nav-primary) 55%, transparent);
     }
 
     .navigatorCategoryTitle2,
