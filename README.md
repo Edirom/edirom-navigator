@@ -1,29 +1,45 @@
-# Edirom Navigator Web Component
+# Edirom Navigator
 
-## Overview
+Hierarchical navigation menu for browsing Edirom editions: collapsible categories, desktop/mobile layouts, optional tabs (switchable by swiping in the mobile layout), and a configurable empty state.
 
-The `edirom-navigator` is a Web Component used within the Edirom system to provide a hierarchical navigation menu. It is designed to display categories and items (links) that allow users to navigate through different parts of an Edirom edition, such as scores, critical reports, or other documents.
+## Usage
 
-It supports two layout modes: `desktop` and `mobile`, adjusting its visual representation and behavior (e.g., collapsible categories) based on the context.
+```html
+<script defer src="path/to/edirom-navigator/navigator.js" type="module"></script>
 
-## Features
+<edirom-navigator
+  layout-mode="desktop"
+  navigator-data='{"navigatorDefinition": [...]}'
+  no-content-message="No entries available."
+></edirom-navigator>
 
-- **Hierarchical Navigation**: Supports nesting of categories and items up to 5 levels deep.
-- **Collapsible Categories**: Nested categories can be toggled to show or hide their contents.
-- **Responsive Design**: Includes specific styles for `desktop` and `mobile` layouts.
-- **Event-Driven**: Dispatches custom events when a navigation item is clicked, allowing for decoupled integration with the rest of the Edirom application.
-- **Empty-State Message**: Displays a configurable message when no navigation data is available.
-- **Loading State**: Displays a loading message with a spinning icon while data is being loaded.
+<script>
+  document.querySelector("edirom-navigator")
+    .addEventListener("load-links-request", (e) => {
+      console.log("Navigate to:", e.detail);
+    });
+</script>
+```
 
-## Endpoints (Attributes and Properties)
+## Attributes
 
-The component can be controlled via the following HTML attributes and corresponding JavaScript properties:
+| Attribute | Type | Description |
+|---|---|---|
+| `navigator-data` | JSON string | Navigation structure, or an array of them to get [tabs](#tabs). Attribute only, so set it with `setAttribute`. |
+| `active-tab` | string | Id of the tab to show. Falls back to the first tab if missing or unknown. Updated when a user switches tabs. |
+| `layout-mode` | `"desktop"` \| `"mobile"` | Layout style. Desktop: indented list, underlined tab bar. Mobile: centered items with icons below labels, segmented-control tab bar, swipe to switch tabs. Default: `"desktop"` |
+| `no-content-message` | string | Message shown in every panel whose `navigatorDefinition` is empty. If omitted, the panel stays empty. |
 
-### `navigator-data` (Attribute / Property)
+## Events
 
-This is the primary way to provide data to the navigator. It expects a JSON string (as an attribute) or a JavaScript object (as a property) containing the navigation structure.
+| Event | Detail | When |
+|---|---|---|
+| `load-links-request` | `string` | A `navigatorItem` was clicked. Detail is the item's `targets` value. |
+| `active-tab-changed` | `{ activeTab: string }` | The user switched [tabs](#tabs) (click, arrow keys, swipe). Detail is the id of the new tab. Not fired when the host sets `active-tab` itself. |
 
-**Expected Value Template:**
+## Data Schema
+
+Pass the navigation structure via the `navigator-data` attribute:
 
 ```json
 {
@@ -34,7 +50,7 @@ This is the primary way to provide data to the navigator. It expects a JSON stri
       "type": "navigatorCategory",
       "items": [
         {
-          "id": "item-1-1",
+          "id": "item-1",
           "name": "Title Page",
           "type": "navigatorItem",
           "targets": "score[page=1]",
@@ -46,148 +62,69 @@ This is the primary way to provide data to the navigator. It expects a JSON stri
       "id": "category-2",
       "name": "Music",
       "type": "navigatorCategory",
-      "items": [
-        {
-          "id": "category-2-1",
-          "name": "Act I",
-          "type": "navigatorCategory",
-          "items": [ ... ]
-        }
-      ]
+      "items": [ ... ]
     }
   ]
 }
 ```
 
-- `type`: Either `navigatorCategory` or `navigatorItem`.
-- `targets`: A string defining the target of the link, e.g., `xmldb:exist:///db/apps/edirom/edition-example/content/sources/edirom.xml[width=100, sort='sortHorizontally']`.
-- `icons` *(optional, `navigatorItem` only)*: An array of icon name strings (resolved via `edirom-icon`). Rendered below the item label in `mobile` mode only.
+**Fields:**
 
-### `layout-mode` (Attribute / Property)
+- `type`: `"navigatorCategory"` or `"navigatorItem"`. Categories can nest up to 5 levels deep.
+- `targets`: Navigation target URL (e.g. `xmldb:exist:///db/apps/edirom/.../file.xml[width=100]`). Items only.
+- `icons`: Array of icon names (resolved via `edirom-icon`). Rendered below item label in mobile mode only. Items only.
 
-Controls the layout and styling of the component.
+## Tabs
 
-**Possible Values:**
+The component does not care what a tab contains; the host decides. Pass an array of definitions instead of a single object, each with an `id`, a `name` (the tab label) and its own `navigatorDefinition`:
 
-- `desktop` (default): Standard list view with specific indentation for nested levels.
-- `mobile`: A touch-friendly layout with centered items and icons rendered below the item label.
-
----
-
-### `no-content-message` (Attribute / Property)
-
-An optional message to display when `navigatorDefinition` is empty or not provided. The text is shown centered (vertically and horizontally) inside the navigator container.
-
-If this attribute is absent or set to an empty string, the container remains empty with no message.
-
-**Example:**
-
-```html
-<edirom-navigator
-  layout-mode="desktop"
-  no-content-message="No entries available."
->
-</edirom-navigator>
+```json
+[
+  { "id": "main", "name": "Navigation", "navigatorDefinition": [ ... ] },
+  { "id": "concordance", "name": "Konkordanz", "navigatorDefinition": [ ... ] }
+]
 ```
 
----
+- The tab bar appears whenever an array is passed, even with a single entry. A single object (the form without tabs) renders without a bar.
+- Both layouts share the tab logic; they differ in looks. `desktop`: an underlined row of tabs. `mobile`: a segmented control that takes the full width, and the panel of a newly selected tab slides in from the side it lies on (unless the user prefers reduced motion).
+- In `mobile` layout the tab bar stays in place while the panel below it scrolls, and a horizontal swipe on the panel switches to the next or previous tab (no wrap-around). Swipes are recognized for touch and pen input only, and the tab starts at its top.
+- Listen to `active-tab-changed` to remember the tab the user picked, e.g. to show it again when the navigator is rebuilt.
+- `active-tab` is sticky: it survives re-setting `navigator-data`, and a tab that disappears and comes back becomes active again.
+- Switching tabs keeps fold state, and a tab whose definition did not change is not re-rendered when another tab's data changes.
+- Ids only need to be unique within a tab.
 
-### `is-loading` (Attribute / Property)
+## Examples
 
-Controls whether the navigator shows its loading animation/message instead of
-navigation entries.
-
-When active, the component renders:
-- a spinning `edirom-icon` with `name="sync"`
-- the loading text: `Inhalte werden geladen...`
-
-Accepted truthy values:
-- attribute present without value (e.g. `<edirom-navigator is-loading></edirom-navigator>`)
-- `"true"`
-- `"1"`
-
-Accepted falsy values:
-- attribute removed
-- `"false"`
-- `"0"`
-
-Notes:
-- Loading state takes precedence over both navigator entries and `no-content-message`.
-- This endpoint is useful for async fetch phases before setting `navigator-data`.
-
-**Example:**
-
-```html
-<edirom-navigator
-  layout-mode="mobile"
-  is-loading="true"
-  no-content-message="No entries available."
-></edirom-navigator>
-```
+**Adding a tab and switching to it:**
 
 ```javascript
-const navigatorEl = document.querySelector("edirom-navigator");
+const nav = document.querySelector("edirom-navigator");
+nav.setAttribute("navigator-data", JSON.stringify([main, concordance]));
+nav.setAttribute("active-tab", "concordance");
 
-// Start loading animation
-navigatorEl.setAttribute("is-loading", "true");
+// Hear about the tab the user switches to
+nav.addEventListener("active-tab-changed", (e) => console.log(e.detail.activeTab));
 
-// After async data fetch
-navigatorEl.setAttribute("navigator-data", JSON.stringify(data));
-navigatorEl.setAttribute("is-loading", "false");
+// Remove the tab again; the component falls back to the first tab
+nav.setAttribute("navigator-data", JSON.stringify([main]));
 ```
 
----
+## Styling
 
-## Events
+Themed via CSS custom properties, overridable on the element or any ancestor. Both layouts use the same properties:
 
-### `load-links-request`
+| Custom property | Default | Description |
+|---|---|---|
+| `--primary-color` | `currentcolor` | Text color: active tab in `desktop` layout; items and unselected tabs in `mobile` layout, where it is also the background of the active tab |
+| `--secondary-color` | `#cacaca` | Tab bar underline in `desktop` layout; item and tab bar background in `mobile` layout, where it is also the text color of the active tab |
 
-Dispatched when a `navigatorItem` is clicked.
-
-**Event Detail:**
-
-```javascript
-"string"  // The target string from the item's 'targets' field
+```css
+edirom-navigator {
+  --primary-color: #232a44;
+  --secondary-color: #e9d9af;
+}
 ```
-
-**Example:**
-
-```javascript
-document
-  .querySelector("edirom-navigator")
-  .addEventListener("load-links-request", (e) => {
-    console.log("Navigate to:", e.detail);
-  });
-```
-
----
 
 ## Dependencies
 
-### `edirom-icon`
-
-The `edirom-navigator` has a direct dependency on the `edirom-icon` Web Component from the [Edirom Core Web Components](https://github.com/Edirom/edirom-core-web-components). It uses `edirom-icon` to:
-
-1. Display **collapsible carets** (`arrow_right` and `arrow_drop_down`) for nested categories.
-2. Display **item icons** in mobile mode, rendered from the `icons` array field of each `navigatorItem`.
-
-Ensure that the `edirom-icon` component is registered and available in your environment for the navigator to render correctly.
-
-## Usage Example
-
-```html
-<edirom-navigator
-  layout-mode="desktop"
-  navigator-data='{"navigatorDefinition": [...]}'
-  no-content-message="No entries available."
->
-</edirom-navigator>
-
-<script>
-  document
-    .querySelector("edirom-navigator")
-    .addEventListener("load-links-request", (e) => {
-      console.log("Navigate to:", e.detail);
-    });
-</script>
-```
+- **[`edirom-icon`](https://github.com/Edirom/edirom-core-web-components)** — for collapsible carets (`arrow_right`, `arrow_drop_down`) and item icons in mobile mode. Must be registered in the host environment.
