@@ -30,6 +30,16 @@ Hierarchical navigation menu for browsing Edirom editions: collapsible categorie
 | `layout-mode` | `"desktop"` \| `"mobile"` | Layout style. Desktop: indented list, underlined tab bar. Mobile: centered items with icons below labels, segmented-control tab bar, swipe to switch tabs. Default: `"desktop"` |
 | `no-content-message` | string | Message shown in every panel whose `navigatorDefinition` is empty. If omitted, the panel stays empty. |
 
+## Slots
+
+| Slot | Description |
+|---|---|
+| `extra` | Content placed above the tab bar. The host supplies it; the navigator does not read it. |
+
+## Keyboard
+
+Tabs already use arrow keys, Home and End. Category headings and items are buttons: Enter and Space activate them. Focus is a visible outline (`--edirom-color-focus`).
+
 ## Events
 
 | Event | Detail | When |

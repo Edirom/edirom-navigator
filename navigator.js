@@ -31,6 +31,13 @@ const sharedStyles = `
         color: var(--_nav-primary);
     }
 
+    .tab:focus-visible,
+    .navigatorItem:focus-visible,
+    .navigatorCategoryTitle:focus-visible {
+        outline: 0.1875rem solid var(--edirom-color-focus, #0b57d0);
+        outline-offset: 0.125rem;
+    }
+
     /* Signals that an unselected tab was just created */
     .tab.flash:not([aria-selected="true"]) {
         animation: tab-flash 1.2s ease-out;
@@ -105,8 +112,17 @@ const layoutStyles = {
         padding: 3px 8px;
     }
 
-    .tab:hover {
+    .tab:hover,
+    .navigatorItem:hover,
+    .navigatorCategoryTitle:hover {
         color: var(--_nav-primary);
+    }
+
+    .tab:focus-visible,
+    .navigatorItem:focus-visible,
+    .navigatorCategoryTitle:focus-visible {
+        outline: 0.1875rem solid var(--edirom-color-focus, #0b57d0);
+        outline-offset: 0.125rem;
     }
 
     .tab[aria-selected="true"] {
@@ -356,6 +372,7 @@ const layoutStyles = {
 const templates = Object.fromEntries(Object.entries(layoutStyles).map(([mode, styles]) => [mode, `
     <style>${sharedStyles}${styles}</style>
     <div id="navigator-container">
+        <slot name="extra"></slot>
         <div id="navigator-tabs"></div>
         <div id="navigator-panels"></div>
     </div>
@@ -669,15 +686,27 @@ class navigatorElement extends HTMLElement {
             caretIcon.name = 'arrow_right';
             titleSpan.appendChild(caretIcon);
 
-            titleDiv.addEventListener('click', () => {
+            const toggleCategory = () => {
                 if (titleSpan.classList.contains('folded')) {
                     titleSpan.classList.remove('folded');
                     caretIcon.name = 'arrow_drop_down';
                     itemsDiv.classList.remove('hidden');
+                    titleDiv.setAttribute('aria-expanded', 'true');
                 } else {
                     titleSpan.classList.add('folded');
                     caretIcon.name = 'arrow_right';
                     itemsDiv.classList.add('hidden');
+                    titleDiv.setAttribute('aria-expanded', 'false');
+                }
+            };
+            titleDiv.tabIndex = 0;
+            titleDiv.setAttribute('role', 'button');
+            titleDiv.setAttribute('aria-expanded', 'false');
+            titleDiv.addEventListener('click', toggleCategory);
+            titleDiv.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleCategory();
                 }
             });
 
@@ -714,6 +743,14 @@ class navigatorElement extends HTMLElement {
         const depthSuffix = depth > 1 ? depth : '';
         itemDiv.className = `navigatorItem${depthSuffix}`;
         itemDiv.id = item.id;
+        itemDiv.tabIndex = 0;
+        itemDiv.setAttribute('role', 'button');
+        itemDiv.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                this.dispatchLoadLinksRequest(item.targets);
+            }
+        });
 
         const itemNameDiv = document.createElement('div');
         itemNameDiv.appendChild(document.createTextNode(item.name));
