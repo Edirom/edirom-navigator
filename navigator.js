@@ -278,17 +278,26 @@ const layoutStyles = {
 
     .navigatorCategoryTitle {
         font-size: 1.3rem;
-        margin: 12px 0 14px 0;
-        line-height: 0.5;
+        /* A normal line-height keeps wrapped titles readable; the margins are reduced by the space
+           this adds around a single line (the former line-height of 0.5), so single-line titles look the same. */
+        margin: 5px 0 7px 0;
+        line-height: 1.2;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
+    /* Even line lengths when wrapped; the width is then fitted to the text by fitTitle() */
+    .navigatorCategoryTitle > span {
+        text-wrap: balance;
+    }
+
     .navigatorCategoryTitle::before,
     .navigatorCategoryTitle::after {
         content: '';
-        flex: 1;
+        /* grow to fill the space, never shrink: a long title wraps instead of squeezing the lines away,
+           so at least 20px of each divider line stays visible */
+        flex: 1 0 20px;
         height: 1px;
         margin: 0 10px;
     }
@@ -338,8 +347,8 @@ const layoutStyles = {
         font-size: 1.15rem;
         font-weight: 400;
         color: var(--_nav-muted);
-        margin: 12px 0 14px 0;
-        line-height: 0.5;
+        margin: 6px 0 8px 0;
+        line-height: 1.2;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -376,6 +385,12 @@ class navigatorElement extends HTMLElement {
         this.swipeStart = null;
         this.panelCache = new Map();
         this.noContentMessage = '';
+        // Re-fits top-level titles whenever they change size (resize, or a hidden tab becoming visible)
+        this.titleObserver = new ResizeObserver(entries =>
+            entries.forEach(entry => this.fitTitle(entry.target.firstElementChild)));
+        // A late-loading web font changes the text width without resizing the title box
+        document.fonts?.addEventListener('loadingdone', () =>
+            this.shadow.querySelectorAll('.navigatorCategoryTitle > span').forEach(this.fitTitle));
 
         this.shadow.addEventListener('pointerdown', this.onSwipeStart);
         this.shadow.addEventListener('pointerup', this.onSwipeEnd);
@@ -687,6 +702,7 @@ class navigatorElement extends HTMLElement {
             titleSpan.id = `${category.id}-title`;
             titleSpan.textContent = category.name;
             titleDiv.appendChild(titleSpan);
+            this.titleObserver.observe(titleDiv);
         }
 
         categoryDiv.appendChild(titleDiv);
@@ -707,6 +723,18 @@ class navigatorElement extends HTMLElement {
 
         categoryDiv.appendChild(itemsDiv);
         return categoryDiv;
+    }
+
+    // Shrinks a top-level title to the width of its widest wrapped line. A wrapped block would otherwise
+    // keep the full available width, leaving a gap between the text and the divider lines beside it.
+    fitTitle = (span) => {
+        if (!span) return;
+        span.style.width = '';
+        if (this.mode !== 'mobile') return;
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        const widest = Math.max(0, ...Array.from(range.getClientRects(), rect => rect.width));
+        if (widest > 0) span.style.width = `${Math.ceil(widest) + 1}px`;
     }
 
     renderItem = (item, depth = 1) => {
