@@ -366,7 +366,7 @@ class navigatorElement extends HTMLElement {
     constructor() {
         super();
         this.mode = this.getLayoutMode(this.getAttribute('layout-mode'));
-        this.shadow = this.attachShadow({ mode: "open", delegatesFocus: true });
+        this.shadow = this.attachShadow({ mode: "open" });
         this.tabs = this.normalizeTabs(null);
         this.tabIds = null; // ids of the last navigator-data with tabs; null until the first one arrived
         this.flashTabIds = new Set();
